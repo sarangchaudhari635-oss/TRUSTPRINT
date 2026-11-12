@@ -90,7 +90,9 @@ if __name__ == "__main__":
     import json
     
     parser = argparse.ArgumentParser(description="Extract transition events from FST/VCD for TRUSTPRINT")
-    parser.add_argument("fst_file", nargs="?", default="/home/sarang_haudhari/bio-sim/waveform/trustprint_multicore.fst", help="Input .fst file")
+    import os
+    default_fst = os.environ.get("BIO_SIM_WAVEFORM", "artifacts/trustprint_multicore.fst")
+    parser.add_argument("fst_file", nargs="?", default=default_fst, help="Input .fst/.vcd file")
     parser.add_argument("--signal", default="gpio_out", help="Target net name (default: gpio_out)")
     parser.add_argument("--bit", type=int, default=21, help="Bit index for vector net (default: 21)")
     parser.add_argument("--json", dest="json_out", default=None, help="Optional output JSON path")

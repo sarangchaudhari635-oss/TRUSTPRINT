@@ -1,7 +1,8 @@
 //! Affine Transformation Alignment Engine for SWIR Micrographs
 
 use crate::models::{
-    AffineTransform, CadFloorplan, LandmarkPair, MacroOverlayResult, OpticalInspectionReport,
+    AffineTransform, CadFloorplan, InspectionMode, LandmarkPair, MacroOverlayResult,
+    OpticalInspectionReport, Point2D,
 };
 use thiserror::Error;
 
@@ -12,6 +13,12 @@ pub enum IrisError {
 
     #[error("Singular matrix encountered during landmark regression")]
     SingularMatrix,
+
+    #[error("Degenerate landmark geometry: {0}")]
+    DegenerateLandmarks(String),
+
+    #[error("Micrograph image file not found or inaccessible: {0}")]
+    ImageNotFound(String),
 
     #[error("I/O error during optical inspection: {0}")]
     Io(#[from] std::io::Error),
@@ -31,6 +38,33 @@ impl DieAligner {
         let n = landmarks.len();
         if n < 3 {
             return Err(IrisError::InsufficientLandmarks(n));
+        }
+
+        // Check for collinearity in CAD coordinates (area of triangle formed by triplets)
+        let mut max_triangle_area_cad = 0.0;
+        for i in 0..n {
+            for j in (i + 1)..n {
+                for k in (j + 1)..n {
+                    let area = 0.5
+                        * ((landmarks[i].cad_um.x
+                            * (landmarks[j].cad_um.y - landmarks[k].cad_um.y)
+                            + landmarks[j].cad_um.x
+                                * (landmarks[k].cad_um.y - landmarks[i].cad_um.y)
+                            + landmarks[k].cad_um.x
+                                * (landmarks[i].cad_um.y - landmarks[j].cad_um.y))
+                            .abs());
+                    if area > max_triangle_area_cad {
+                        max_triangle_area_cad = area;
+                    }
+                }
+            }
+        }
+
+        if max_triangle_area_cad < 1e-3 {
+            return Err(IrisError::DegenerateLandmarks(
+                "CAD landmark coordinates are collinear or degenerate; affine alignment cannot be computed"
+                    .to_string(),
+            ));
         }
 
         let nf = n as f64;
@@ -73,23 +107,23 @@ impl DieAligner {
         // M = [[sum_x2, sum_xy, sum_x],
         //      [sum_xy, sum_y2, sum_y],
         //      [sum_x,  sum_y,  n     ]]
-        let det = sum_x2 * (sum_y2 * nf - sum_y * sum_y)
-            - sum_xy * (sum_xy * nf - sum_x * sum_y)
+        let det = sum_x2 * (sum_y2 * nf - sum_y * sum_y) - sum_xy * (sum_xy * nf - sum_x * sum_y)
             + sum_x * (sum_xy * sum_y - sum_x * sum_y2);
 
-        if det.abs() < 1e-12 {
-            return Err(IrisError::SingularMatrix);
+        if det.abs() < 1e-9 {
+            return Err(IrisError::DegenerateLandmarks(
+                "Normal matrix determinant is near-zero; landmark configuration is singular or collinear"
+                    .to_string(),
+            ));
         }
 
         let inv_det = 1.0 / det;
 
         // Cramer's rule for (a, b, c)
-        let det_a = sum_xu * (sum_y2 * nf - sum_y * sum_y)
-            - sum_yu * (sum_xy * nf - sum_x * sum_y)
+        let det_a = sum_xu * (sum_y2 * nf - sum_y * sum_y) - sum_yu * (sum_xy * nf - sum_x * sum_y)
             + sum_u * (sum_xy * sum_y - sum_x * sum_y2);
 
-        let det_b = sum_x2 * (sum_yu * nf - sum_u * sum_y)
-            - sum_xy * (sum_xu * nf - sum_u * sum_x)
+        let det_b = sum_x2 * (sum_yu * nf - sum_u * sum_y) - sum_xy * (sum_xu * nf - sum_u * sum_x)
             + sum_x * (sum_xu * sum_y - sum_yu * sum_x);
 
         let det_c = sum_x2 * (sum_y2 * sum_u - sum_y * sum_yu)
@@ -101,12 +135,10 @@ impl DieAligner {
         let c = det_c * inv_det;
 
         // Cramer's rule for (d, e, f)
-        let det_d = sum_xv * (sum_y2 * nf - sum_y * sum_y)
-            - sum_yv * (sum_xy * nf - sum_x * sum_y)
+        let det_d = sum_xv * (sum_y2 * nf - sum_y * sum_y) - sum_yv * (sum_xy * nf - sum_x * sum_y)
             + sum_v * (sum_xy * sum_y - sum_x * sum_y2);
 
-        let det_e = sum_x2 * (sum_yv * nf - sum_v * sum_y)
-            - sum_xy * (sum_xv * nf - sum_v * sum_x)
+        let det_e = sum_x2 * (sum_yv * nf - sum_v * sum_y) - sum_xy * (sum_xv * nf - sum_v * sum_x)
             + sum_x * (sum_xv * sum_y - sum_yv * sum_x);
 
         let det_f = sum_x2 * (sum_y2 * sum_v - sum_y * sum_yv)
@@ -120,31 +152,47 @@ impl DieAligner {
         Ok(AffineTransform { a, b, c, d, e, f })
     }
 
-    /// Calculates root-mean-square (RMS) alignment error across landmark pairs in pixels.
-    pub fn calculate_rms_error(landmarks: &[LandmarkPair], transform: &AffineTransform) -> f64 {
-        if landmarks.is_empty() {
-            return 0.0;
-        }
-
+    /// Calculates per-landmark residual error vectors and overall root-mean-square (RMS) error in pixels.
+    pub fn compute_residuals(
+        landmarks: &[LandmarkPair],
+        transform: &AffineTransform,
+    ) -> (Vec<LandmarkPair>, f64) {
+        let mut updated = Vec::with_capacity(landmarks.len());
         let mut sum_sq_err = 0.0;
         for lm in landmarks {
             let projected = transform.apply(&lm.cad_um);
-            let err_sq = (projected.x - lm.observed_px.x).powi(2)
-                + (projected.y - lm.observed_px.y).powi(2);
-            sum_sq_err += err_sq;
+            let dx = projected.x - lm.observed_px.x;
+            let dy = projected.y - lm.observed_px.y;
+            let dist = (dx * dx + dy * dy).sqrt();
+            sum_sq_err += dist * dist;
+            let mut lm_updated = lm.clone();
+            lm_updated.residual_px = Some(Point2D::new(dx, dy));
+            lm_updated.residual_distance_px = Some(dist);
+            updated.push(lm_updated);
         }
+        let rms = if landmarks.is_empty() {
+            0.0
+        } else {
+            (sum_sq_err / (landmarks.len() as f64)).sqrt()
+        };
+        (updated, rms)
+    }
 
-        (sum_sq_err / (landmarks.len() as f64)).sqrt()
+    /// Calculates root-mean-square (RMS) alignment error across landmark pairs in pixels.
+    pub fn calculate_rms_error(landmarks: &[LandmarkPair], transform: &AffineTransform) -> f64 {
+        let (_, rms) = Self::compute_residuals(landmarks, transform);
+        rms
     }
 
     /// Projects all CAD floorplan macro boundaries onto optical micrograph pixel space
-    /// and generates a formal Epistemic Tier 4 inspection report.
+    /// and generates a formal Epistemic Tier 4 inspection report with explicit provenance.
     pub fn inspect_and_overlay(
         floorplan: &CadFloorplan,
         landmarks: &[LandmarkPair],
+        mode: InspectionMode,
     ) -> Result<OpticalInspectionReport, IrisError> {
         let transform = Self::compute_affine_transform(landmarks)?;
-        let rms_error_px = Self::calculate_rms_error(landmarks, &transform);
+        let (updated_landmarks, rms_error_px) = Self::compute_residuals(landmarks, &transform);
 
         let mut overlays = Vec::with_capacity(floorplan.macros.len());
         for m in &floorplan.macros {
@@ -162,19 +210,52 @@ impl DieAligner {
             });
         }
 
+        let (is_synthetic, verification_status, caveats) = match &mode {
+            InspectionMode::DemonstrationSynthetic { synthetic_source } => (
+                true,
+                "DEMONSTRATION_ONLY".to_string(),
+                vec![
+                    format!(
+                        "DEMONSTRATION_ONLY: Synthetic benchmark CAD registration from source '{}'. No physical micrograph was verified.",
+                        synthetic_source
+                    ),
+                    "PROVES: Mathematical correctness of affine registration and CAD projection algorithm.".to_string(),
+                    "DOES NOT PROVE: Physical silicon authenticity, die markings, or macro presence without real optical micrograph capture.".to_string(),
+                    "DOES NOT PROVE: Transistor-level netlist equivalence or individual gate functions.".to_string(),
+                ],
+            ),
+            InspectionMode::PhysicalMicrograph {
+                micrograph_path,
+                micrograph_sha512,
+            } => (
+                false,
+                "VERIFIED_PHYSICAL".to_string(),
+                vec![
+                    format!(
+                        "VERIFIED_PHYSICAL: Backside SWIR optical micrograph '{}' registered against CAD floorplan (SHA-512: {}).",
+                        micrograph_path,
+                        &micrograph_sha512[..16.min(micrograph_sha512.len())]
+                    ),
+                    "PROVES: Macro-level physical presence, bounding geometry, and silicon floorplan alignment.".to_string(),
+                    "PROVES: Physical coexistence of SRAM, ReRAM, CPU, and BIO macro blocks on physical silicon die.".to_string(),
+                    "DOES NOT PROVE: Transistor-level netlist equivalence or internal gate functions.".to_string(),
+                    "DOES NOT PROVE: Absence of microscopic sub-micron hardware Trojans or modified doping concentrations.".to_string(),
+                ],
+            ),
+        };
+
         Ok(OpticalInspectionReport {
             timestamp_utc: chrono::Utc::now().to_rfc3339(),
             epistemic_tier: "OPTICAL_IRIS".to_string(),
+            inspection_mode: mode,
+            is_synthetic,
+            verification_status,
             chip_name: floorplan.chip_name.clone(),
             transform,
             rms_error_px,
+            landmarks: updated_landmarks,
             overlays,
-            scientific_caveats: vec![
-                "PROVES: Macro-level physical presence, bounding geometry, and silicon floorplan alignment.".to_string(),
-                "PROVES: Physical coexistence of SRAM, ReRAM, CPU, and BIO macro blocks.".to_string(),
-                "DOES NOT PROVE: Transistor-level netlist equivalence or individual gate functions.".to_string(),
-                "DOES NOT PROVE: Absence of microscopic hardware Trojans or modified doping concentrations.".to_string(),
-            ],
+            scientific_caveats: caveats,
         })
     }
 }

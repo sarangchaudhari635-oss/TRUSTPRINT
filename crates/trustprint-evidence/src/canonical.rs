@@ -12,7 +12,13 @@ impl CanonicalJson {
     pub fn canonicalize(value: &Value) -> String {
         match value {
             Value::Null => "null".to_string(),
-            Value::Bool(b) => if *b { "true".to_string() } else { "false".to_string() },
+            Value::Bool(b) => {
+                if *b {
+                    "true".to_string()
+                } else {
+                    "false".to_string()
+                }
+            }
             Value::Number(n) => n.to_string(),
             Value::String(s) => serde_json::to_string(s).unwrap_or_else(|_| format!("\"{}\"", s)),
             Value::Array(arr) => {
@@ -73,4 +79,3 @@ mod tests {
         );
     }
 }
-

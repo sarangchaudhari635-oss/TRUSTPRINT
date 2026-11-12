@@ -1,38 +1,7 @@
 # TRUSTPRINT Physical Silicon Telemetry Log
-# Port: COM10 | Baud: 115200 | Timestamp: 1794493026.3735366
+# Port: COM10 | Baud: 115200 | Timestamp: 1794499031.1602917
 # Epistemic Tier: PHYSICAL_IO_BEHAVIOURAL
 
-[1794493026.6084] audit
-[1794493026.6089] Board type reads as: Dabao
-[1794493026.6094] Boot partition is: Ok(PrimaryPartition)
-[1794493026.6098] Semver is: v0.10.0-61-g5397e1b48
-[1794493026.6101] Description is: bao2-0
-[1794493026.6104] Stepping is: A0
-[1794493026.6110] Device serializer: 4332af0a-3f263177-494a5f1c-68bbebf6
-[1794493026.6113] Public serial number: NNBT1T
-[1794493026.6118] UUID: 0b4d2b1c-198122bd-2cb59a01-3aebf575
-[1794493026.6129] Paranoid mode: 0/0
-[1794493026.6132] Possible attack attempts: 1
-[1794493026.6134] Revocations:
-[1794493026.6139] Stage       key0     key1     key2     key3
-[1794493026.6144] boot0       enabled  enabled  enabled  enabled
-[1794493026.6150] boot1       enabled  enabled  enabled  enabled
-[1794493026.6156] next stage  enabled  enabled  enabled  enabled
-[1794493026.6159] Boot0: key 0/0 (bao1) -> 60000000
-[1794493026.6163] Boot1: key 0/0 (bao1) -> 60020000
-[1794493026.6168] Next stage: key 3/3 (dev ) -> 60060000
-[1794493026.6170] Erase proof: erased
-[1794493026.6173] auto-audit limit: 3
-[1794493026.6188] boot0 partition: a0680a73106600c4ece34f9393fc5c8eed4885e844b1b78b58fb3a8a299a885cd794c667a5e787083bce46bf7aff8d3f4affa6a93a38ba7b507bb0d47c70fa01
-[1794493026.6205] boot0 code only: 563802e7f10fd0ca0a1c700c6313eff624aa57d9cd88d3c33af4b720eff5480432e01c116925a324a96e12d92953d7cb6076ea4557a22058e1a61be4c2b4dee2
-[1794493026.6212] boot0 baobit toolchain: 441559d7e1984623ec0a52f60f90240c740b6c41
-[1794493026.6228] boot1 partition: a12eb17f37c88e834bb7beef3f5163f232824e8044fcbab3bb37c6ac54d10f78d61ace96da9ebfc03e3cc9514312f22b18a9481747fc0526dc89733789db3927
-[1794493026.6244] boot1 code only: e42b5aba61d98990ca24f5fc3b6cf012b14ea4d121f9bbe494baf4d9ae854d3ba88cdf26a288b88778826f816dc960c3ffe24b7c919108a3aca90f2dc4551a55
-[1794493026.6252] boot1 baobit toolchain: 441559d7e1984623ec0a52f60f90240c740b6c41
-[1794493026.6256] == IN DEVELOPER MODE ==
-[1794493026.6260] In-system keys have been generated
-[1794493026.6263] CM7 & debug confirmed fused off
-[1794493026.6266] Collateral erased
-[1794493026.6268] Boot1 receipts OK
-[1794493026.6271] Boot1 anti-rollback OK
-[1794493026.6278] ** System did not meet minimum requirements for security **
+[1794499031.1609] test freemem
+[1794499031.1617] Command not recognized: test
+[1794499031.1635] Commands include: altboot, audit, boot, boardtype, bootwait, echo, idmode, ifr, localecho, lockdown, paranoid, reset, self_destruct, skipping, uf2

@@ -1,8 +1,13 @@
 {
   "payload": {
     "schema_version": "trustprint.v1.evidence",
-    "bundle_id": "TPE-ade1fde6",
-    "created_at_utc": "2026-11-12T15:08:02.108163405+00:00",
+    "bundle_id": "TPE-a81b1744",
+    "created_at_utc": "2026-11-12T16:51:19.280860500+00:00",
+    "key_provenance": {
+      "DevelopmentHostKey": {
+        "key_file_path": "C:\\Users\\Sarang Chaudhari\\.trustprint\\dev_signing_key.sec"
+      }
+    },
     "target_hardware": {
       "board_type": "Dabao",
       "silicon_stepping": "A0",
@@ -17,8 +22,9 @@
       {
         "tier": "DESIGN_RTL",
         "claim_name": "Baochip-1x bio.sv Interface Extraction",
-        "description": "Structural AST extracted 34 APB Special Function Registers and 70 I/O ports",
-        "artifact_digest_sha512": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "description": "Structural AST extracted APB Special Function Registers and I/O ports",
+        "artifact_rel_path": "rtl/bio.sv",
+        "artifact_digest_sha512": "4da19c8cdbe98eae194c231d70ba279e739a1286a72c9e3ff9188018456a2dac5fa490487a0a83be8e3f1ab348476deed1379c3ba0e5341becd36d028933b41b",
         "verified_passed": true,
         "metadata": {
           "ports": 70,
@@ -28,8 +34,9 @@
       {
         "tier": "SIMULATION_VERILATOR",
         "claim_name": "Multi-Core 700MHz BIO Waveform Conformance",
-        "description": "Analyzed 131 waveform cycles: 108.528ns mean period (9.214 MHz), 0.0ps jitter",
-        "artifact_digest_sha512": "f4b3c2a1098e7d6c5b4a39281726354433221100ffeeddccbbaa998877665544",
+        "description": "Simulation edge transitions and duty-cycle timing metrics",
+        "artifact_rel_path": "artifacts/trustprint_multicore_edges.json",
+        "artifact_digest_sha512": "40a49a802b7b4b2a16f8fd3a6fe90dbdc9d0f37e97e22806e57d84572487f38c7f7be0aa0301a3911956ea92b8174aaae7d9525aff3469c4204f484bdd12d9cc",
         "verified_passed": true,
         "metadata": {
           "cycles": 131,
@@ -40,8 +47,9 @@
       {
         "tier": "PHYSICAL_IO_BEHAVIOURAL",
         "claim_name": "Physical Dabao Board Telemetry & IFR Provenance",
-        "description": "Verified UART communication over COM10; extracted TSMC wafer lot 47521066M06T",
-        "artifact_digest_sha512": "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+        "description": "Verified UART communication over active COM port; extracted TSMC wafer lot 47521066M06T",
+        "artifact_rel_path": "artifacts/dabao_physical_evidence.json",
+        "artifact_digest_sha512": "98494cff0758a2c0172598cb6ad15993749040cd76dbccff2517645b395b68f1039ac867517dab8f4534bff71a54aa765f8c2fefe90c304ebb561d6c309c36f2",
         "verified_passed": true,
         "metadata": {
           "public_serial": "NNBT1T",
@@ -52,7 +60,8 @@
         "tier": "OPTICAL_IRIS",
         "claim_name": "IRIS 1050nm SWIR Die Micrograph CAD Registration",
         "description": "Affine alignment overlay of 5 macro blocks (CPU, SRAM 2MB, ReRAM 4MB, BIO, Crypto)",
-        "artifact_digest_sha512": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+        "artifact_rel_path": "artifacts/iris_inspection_report.json",
+        "artifact_digest_sha512": "8874a88a02ce5a54032207ac25b94170f5e6f06352827444a07b2e6afe7707b4f6db24d68b07574225a9847e50551ab400785fcb20adcdec7fa4a72374d8422d",
         "verified_passed": true,
         "metadata": {
           "macros_aligned": 5,
@@ -61,8 +70,8 @@
       }
     ]
   },
-  "canonical_payload_sha512": "47f17049d0dbd7253c015a0a74c08829a3d4b4bcd08773594991877103250636c8c36756322e088a46348ddafe65924c759a75f60cbe5fef8d1461a77593a401",
-  "attestation_signature": "70e515b43255b919edbad4de760d69bec168d3e2608a87b95716ac8cd1990025ce40e58da6c1a92b59a95ec4e515e28e076f05b5839d73557dbce54242aed00f",
-  "signer_public_key_hex": "ade1fde616eadef7a4c2192c2311abf0054c93521633504f4f49d016c5b9b031",
+  "canonical_payload_sha512": "4d888686bed348400adcacc1597a18e9bce6889c9211fb76d23650baf4493fec1b7ad1ea7f6a31d74bcc858a1baa34ea5a7d2d4d23dc86ebfb8b4afd18751f45",
+  "attestation_signature": "18c0120054061f5b2be45fb285475bae586930d39742159ca4713b2068b05c1436815d12d773216113cf478020fe8537de18d7b1624fd0871fa01d3ac4b28603",
+  "signer_public_key_hex": "a81b17441380b2c38d314259d6f15d92ad72c054db82c510f34b0172f49b3c91",
   "verification_instructions": "Verify by re-canonicalizing payload (RFC 8785), computing SHA-512, and verifying Ed25519 signature."
 }

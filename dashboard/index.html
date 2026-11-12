@@ -36,6 +36,8 @@
   .header-badges { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
   .badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; }
   .badge-green { background: rgba(34,197,94,0.15); color: var(--pass); border: 1px solid rgba(34,197,94,0.3); }
+  .badge-red { background: rgba(239,68,68,0.15); color: var(--fail); border: 1px solid rgba(239,68,68,0.3); }
+  .badge-amber { background: rgba(245,158,11,0.15); color: var(--warn); border: 1px solid rgba(245,158,11,0.3); }
   .badge-blue { background: rgba(0,136,255,0.15); color: var(--accent2); border: 1px solid rgba(0,136,255,0.3); }
   .badge-orange { background: rgba(255,107,53,0.15); color: var(--accent3); border: 1px solid rgba(255,107,53,0.3); }
   .badge-purple { background: rgba(192,132,252,0.15); color: var(--accent4); border: 1px solid rgba(192,132,252,0.3); }
@@ -991,27 +993,73 @@ milestones.forEach(m => {
 });
 
 // Evidence claims
-const claims = [
+const initialClaims = [
   { tier:'DESIGN_RTL', name:'bio.sv Interface Extraction', desc:'34 SFRs + 70 ports from Baochip-1x silicon RTL', meta:'sfr_registers: 34 · ports: 70', pass:true },
   { tier:'SIMULATION_VERILATOR', name:'Multi-Core 700MHz BIO Conformance', desc:'131 cycles · 108.528ns · 9.214 MHz · 0.0ps jitter', meta:'cycles: 131 · jitter_p2p_ps: 0.0', pass:true },
-  { tier:'PHYSICAL_IO_BEHAVIOURAL', name:'Physical Dabao Telemetry & IFR', desc:'COM9 · NNBT1T · TSMC Wafer 47521066M06T', meta:'stepping: A0 · serial: NNBT1T', pass:true },
-  { tier:'OPTICAL_IRIS', name:'SWIR Die Micrograph CAD Registration', desc:'5 macro blocks aligned · RMS 1.42×10⁻¹⁴ px', meta:'macros_aligned: 5 · rms_residual: ~0', pass:true },
+  { tier:'PHYSICAL_IO_BEHAVIOURAL', name:'Physical Dabao Telemetry & IFR', desc:'COM10 · NNBT1T · TSMC Wafer 47521066M06T', meta:'stepping: A0 · serial: NNBT1T', pass:true },
+  { tier:'OPTICAL_IRIS', name:'SWIR Die Micrograph CAD Registration', desc:'5 macro blocks aligned · RMS residual < 1e-14 px', meta:'macros_aligned: 5 · status: DEMONSTRATION_ONLY', pass:true },
 ];
 const tierColors = { DESIGN_RTL:'#60a5fa', SIMULATION_VERILATOR:'#34d399', PHYSICAL_IO_BEHAVIOURAL:'#fb923c', OPTICAL_IRIS:'#c084fc' };
-const cl = document.getElementById('claims-list');
-claims.forEach(c => {
-  const color = tierColors[c.tier] || '#94a3b8';
-  cl.innerHTML += `
-    <div style="background:var(--surface2);border:1px solid var(--border);border-left:4px solid ${color};border-radius:8px;padding:12px 14px;margin-bottom:10px">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
-        <div style="font-size:11px;font-weight:700;color:${color};letter-spacing:0.5px">${c.tier}</div>
-        <span class="badge badge-green">✓ PASS</span>
-      </div>
-      <div style="font-size:13px;font-weight:600;margin-bottom:3px">${c.name}</div>
-      <div style="font-size:11px;color:var(--text-dim)">${c.desc}</div>
-      <div style="font-size:10px;font-family:monospace;color:var(--text-dim);margin-top:5px">${c.meta}</div>
-    </div>`;
-});
+
+function renderClaims(claimsList) {
+  const cl = document.getElementById('claims-list');
+  if (!cl) return;
+  cl.textContent = '';
+  claimsList.forEach(c => {
+    const color = tierColors[c.tier] || '#94a3b8';
+    const isPass = c.verified_passed !== false && c.pass !== false;
+    const card = document.createElement('div');
+    card.style = `background:var(--surface2);border:1px solid var(--border);border-left:4px solid ${color};border-radius:8px;padding:12px 14px;margin-bottom:10px`;
+    
+    const hdr = document.createElement('div');
+    hdr.style = 'display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px';
+    
+    const tierLbl = document.createElement('div');
+    tierLbl.style = `font-size:11px;font-weight:700;color:${color};letter-spacing:0.5px`;
+    tierLbl.textContent = c.tier || '';
+    
+    const badge = document.createElement('span');
+    badge.className = `badge ${isPass ? 'badge-green' : 'badge-red'}`;
+    badge.textContent = isPass ? '✓ PASS' : '✗ FAIL';
+    
+    hdr.appendChild(tierLbl);
+    hdr.appendChild(badge);
+    card.appendChild(hdr);
+    
+    const title = document.createElement('div');
+    title.style = 'font-size:13px;font-weight:600;margin-bottom:3px';
+    title.textContent = c.claim_name || c.name || '';
+    card.appendChild(title);
+    
+    const desc = document.createElement('div');
+    desc.style = 'font-size:11px;color:var(--text-dim)';
+    desc.textContent = c.description || c.desc || '';
+    card.appendChild(desc);
+    
+    if (c.metadata || c.meta) {
+      const meta = document.createElement('div');
+      meta.style = 'font-size:10px;font-family:monospace;color:var(--text-dim);margin-top:5px';
+      meta.textContent = typeof c.metadata === 'object' ? JSON.stringify(c.metadata) : String(c.meta || '');
+      card.appendChild(meta);
+    }
+    
+    cl.appendChild(card);
+  });
+}
+
+renderClaims(initialClaims);
+
+// Safe DOM Text Helper
+function setSafeSplitText(elementId, text, chunkSize) {
+  const el = document.getElementById(elementId);
+  if (!el || text === undefined || text === null) return;
+  el.textContent = '';
+  const str = String(text);
+  for (let i = 0; i < str.length; i += chunkSize) {
+    if (i > 0) el.appendChild(document.createElement('br'));
+    el.appendChild(document.createTextNode(str.substring(i, i + chunkSize)));
+  }
+}
 
 // Real transition dataset (gpio_out[21] in picoseconds)
 let currentTransitions = [
@@ -1134,50 +1182,56 @@ function handleFileUpload(event) {
 
 function processIngestedData(data, filename) {
   // 1. Evidence Certificate (.tpe)
-  if (data.bundle_id || data.attestation_signature || (data.claims && data.signer_public_key_hex)) {
-    if (data.bundle_id) document.getElementById('val-bundle-id').textContent = data.bundle_id;
-    if (data.schema_version) document.getElementById('val-schema').textContent = data.schema_version;
-    if (data.created_at) document.getElementById('val-created-at').textContent = data.created_at;
+  if (data.bundle_id || data.attestation_signature || (data.payload && data.signer_public_key_hex)) {
+    const p = data.payload || data;
+    if (p.bundle_id) document.getElementById('val-bundle-id').textContent = p.bundle_id;
+    if (p.schema_version) document.getElementById('val-schema').textContent = p.schema_version;
+    if (p.created_at_utc || p.created_at) document.getElementById('val-created-at').textContent = p.created_at_utc || p.created_at;
     if (data.signer_public_key_hex) {
-      document.getElementById('val-pubkey').innerHTML = data.signer_public_key_hex.substring(0,32) + '<br>' + data.signer_public_key_hex.substring(32);
+      setSafeSplitText('val-pubkey', data.signer_public_key_hex, 32);
     }
-    if (data.payload_digest_sha512) {
-      document.getElementById('val-payload-hash').innerHTML = data.payload_digest_sha512.match(/.{1,32}/g).join('<br>');
+    if (data.canonical_payload_sha512 || data.payload_digest_sha512) {
+      setSafeSplitText('val-payload-hash', data.canonical_payload_sha512 || data.payload_digest_sha512, 32);
     }
     if (data.attestation_signature) {
-      document.getElementById('val-sig').innerHTML = data.attestation_signature.match(/.{1,32}/g).join('<br>');
+      setSafeSplitText('val-sig', data.attestation_signature, 32);
     }
-    document.getElementById('cert-verdict').textContent = `Evidence Bundle ${data.bundle_id || 'CERT'} — Verified & Loaded`;
+    if (p.claims && Array.isArray(p.claims)) {
+      renderClaims(p.claims);
+    }
+    document.getElementById('cert-verdict').textContent = `Evidence Bundle ${p.bundle_id || 'CERT'} — Verified & Loaded`;
     showToast(`✓ Evidence Certificate ${filename} Verified & Loaded!`);
   }
   // 2. Physical Silicon Telemetry
-  else if (data.public_serial || data.tsmc_wafer_lot_id || data.device_uuid) {
+  else if (data.public_serial || data.wafer_lot_tracking_id || data.tsmc_wafer_lot_id || data.device_serializer) {
     if (data.public_serial) {
       document.getElementById('hdr-serial').textContent = data.public_serial;
       document.getElementById('val-serial').textContent = data.public_serial;
     }
-    if (data.tsmc_wafer_lot_id) {
-      document.getElementById('card-wafer').textContent = data.tsmc_wafer_lot_id;
-      document.getElementById('val-wafer').textContent = data.tsmc_wafer_lot_id;
+    const wafer = data.wafer_lot_tracking_id || data.tsmc_wafer_lot_id;
+    if (wafer) {
+      document.getElementById('card-wafer').textContent = wafer;
+      document.getElementById('val-wafer').textContent = wafer;
     }
     if (data.silicon_stepping) {
       document.getElementById('card-stepping').textContent = data.silicon_stepping;
       document.getElementById('val-stepping').textContent = data.silicon_stepping;
     }
-    if (data.firmware_semver) document.getElementById('val-semver').textContent = data.firmware_semver;
+    if (data.semver || data.firmware_semver) document.getElementById('val-semver').textContent = data.semver || data.firmware_semver;
     if (data.device_serializer) document.getElementById('val-serializer').textContent = data.device_serializer;
-    if (data.device_uuid) document.getElementById('val-uuid').textContent = data.device_uuid;
-    if (data.partitions && data.partitions.boot0_sha512) {
-      document.getElementById('val-boot0').innerHTML = data.partitions.boot0_sha512.substring(0,64) + '<br>' + data.partitions.boot0_sha512.substring(64);
-    }
-    if (data.partitions && data.partitions.boot1_sha512) {
-      document.getElementById('val-boot1').innerHTML = data.partitions.boot1_sha512.substring(0,64) + '<br>' + data.partitions.boot1_sha512.substring(64);
-    }
+    if (data.uuid || data.device_uuid) document.getElementById('val-uuid').textContent = data.uuid || data.device_uuid;
+    
+    const boot0 = data.boot0_partition_hash || (data.partitions && data.partitions.boot0_sha512);
+    if (boot0) setSafeSplitText('val-boot0', boot0, 64);
+
+    const boot1 = data.boot1_partition_hash || (data.partitions && data.partitions.boot1_sha512);
+    if (boot1) setSafeSplitText('val-boot1', boot1, 64);
+
     showToast(`✓ Physical Silicon Telemetry Ingested: ${data.public_serial || filename}`);
   }
   // 3. Waveform Edges Data
   else if (Array.isArray(data) && data[0] && data[0].timestamp_ps !== undefined) {
-    currentTransitions = data.map(item => [item.timestamp_ps, item.new_state ? 1 : 0]);
+    currentTransitions = data.map(item => [item.timestamp_ps, item.state || item.new_state ? 1 : 0]);
     document.getElementById('stat-cycles').textContent = Math.floor(currentTransitions.length / 2);
     document.getElementById('waveform-summary').textContent = `gpio_out[21] — Ingested ${currentTransitions.length} transitions from ${filename}`;
     const maxT = currentTransitions[currentTransitions.length - 1][0];
@@ -1186,20 +1240,33 @@ function processIngestedData(data, filename) {
     showToast(`✓ Waveform Data Ingested: ${currentTransitions.length} transitions`);
   }
   // 4. IRIS Inspection Report
-  else if (data.affine_transform || data.rms_residual_px !== undefined) {
-    if (data.affine_transform) {
-      document.getElementById('aff-a').textContent = data.affine_transform.a.toFixed(6);
-      document.getElementById('aff-b').textContent = data.affine_transform.b.toFixed(6);
-      document.getElementById('aff-c').textContent = data.affine_transform.c.toFixed(3);
-      document.getElementById('aff-d').textContent = data.affine_transform.d.toFixed(6);
-      document.getElementById('aff-e').textContent = data.affine_transform.e.toFixed(6);
-      document.getElementById('aff-f').textContent = data.affine_transform.f.toFixed(3);
+  else if (data.transform || data.affine_transform || data.rms_error_px !== undefined || data.rms_residual_px !== undefined) {
+    const tf = data.transform || data.affine_transform;
+    if (tf) {
+      document.getElementById('aff-a').textContent = Number(tf.a).toFixed(6);
+      document.getElementById('aff-b').textContent = Number(tf.b).toFixed(6);
+      document.getElementById('aff-c').textContent = Number(tf.c).toFixed(3);
+      document.getElementById('aff-d').textContent = Number(tf.d).toFixed(6);
+      document.getElementById('aff-e').textContent = Number(tf.e).toFixed(6);
+      document.getElementById('aff-f').textContent = Number(tf.f).toFixed(3);
     }
-    if (data.rms_residual_px !== undefined) {
-      document.getElementById('aff-rms').textContent = `RMS Residual: ${data.rms_residual_px.toExponential(2)} px ✓ (sub-atomic precision)`;
+    const rms = data.rms_error_px !== undefined ? data.rms_error_px : data.rms_residual_px;
+    if (rms !== undefined) {
+      const isSynthetic = data.is_synthetic || data.verification_status === 'DEMONSTRATION_ONLY';
+      const statusBadge = isSynthetic
+        ? '<span class="badge badge-amber" style="margin-left:8px">DEMONSTRATION_ONLY</span>'
+        : '<span class="badge badge-green" style="margin-left:8px">VERIFIED_PHYSICAL</span>';
+      document.getElementById('aff-rms').innerHTML = `RMS Residual: ${Number(rms).toExponential(2)} px ${statusBadge}`;
     }
     showToast(`✓ IRIS Optical Registration Report Ingested!`);
   }
+  else {
+    showToast(`✓ File ${filename} Ingested.`);
+  }
+
+  const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
+  document.getElementById('last-updated').textContent = `Ingested: ${now} UTC`;
+}
   else {
     showToast(`✓ File ${filename} Ingested.`);
   }

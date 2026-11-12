@@ -25,5 +25,5 @@ pub struct AttestationResponse {
     pub length_bytes: usize,
     pub memory_checksum: u64,
     pub mmu_isolation_verified: bool,
+    pub evaluation_model: String,
 }
-

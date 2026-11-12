@@ -1,6 +1,13 @@
 {
-  "timestamp_utc": "2026-11-12T15:08:00.348636769+00:00",
+  "timestamp_utc": "2026-11-12T16:32:57.325416300+00:00",
   "epistemic_tier": "OPTICAL_IRIS",
+  "inspection_mode": {
+    "DemonstrationSynthetic": {
+      "synthetic_source": "cad_benchmark_fiducials"
+    }
+  },
+  "is_synthetic": true,
+  "verification_status": "DEMONSTRATION_ONLY",
   "chip_name": "Baochip-1x",
   "transform": {
     "a": 0.44999999999999996,
@@ -11,6 +18,72 @@
     "f": 29.999999999999996
   },
   "rms_error_px": 1.4210854715202004e-14,
+  "landmarks": [
+    {
+      "name": "FID_TL",
+      "cad_um": {
+        "x": 100.0,
+        "y": 100.0
+      },
+      "observed_px": {
+        "x": 70.0,
+        "y": 75.0
+      },
+      "residual_px": {
+        "x": -1.4210854715202004e-14,
+        "y": -1.4210854715202004e-14
+      },
+      "residual_distance_px": 2.0097183471152322e-14
+    },
+    {
+      "name": "FID_TR",
+      "cad_um": {
+        "x": 2400.0,
+        "y": 100.0
+      },
+      "observed_px": {
+        "x": 1105.0,
+        "y": 75.0
+      },
+      "residual_px": {
+        "x": 0.0,
+        "y": -1.4210854715202004e-14
+      },
+      "residual_distance_px": 1.4210854715202004e-14
+    },
+    {
+      "name": "FID_BL",
+      "cad_um": {
+        "x": 100.0,
+        "y": 2400.0
+      },
+      "observed_px": {
+        "x": 70.0,
+        "y": 1110.0
+      },
+      "residual_px": {
+        "x": -1.4210854715202004e-14,
+        "y": 0.0
+      },
+      "residual_distance_px": 1.4210854715202004e-14
+    },
+    {
+      "name": "FID_BR",
+      "cad_um": {
+        "x": 2400.0,
+        "y": 2400.0
+      },
+      "observed_px": {
+        "x": 1105.0,
+        "y": 1110.0
+      },
+      "residual_px": {
+        "x": 0.0,
+        "y": 0.0
+      },
+      "residual_distance_px": 0.0
+    }
+  ],
   "overlays": [
     {
       "id": "CPU_VEXRISCV",
@@ -104,9 +177,9 @@
     }
   ],
   "scientific_caveats": [
-    "PROVES: Macro-level physical presence, bounding geometry, and silicon floorplan alignment.",
-    "PROVES: Physical coexistence of SRAM, ReRAM, CPU, and BIO macro blocks.",
-    "DOES NOT PROVE: Transistor-level netlist equivalence or individual gate functions.",
-    "DOES NOT PROVE: Absence of microscopic hardware Trojans or modified doping concentrations."
+    "DEMONSTRATION_ONLY: Synthetic benchmark CAD registration from source 'cad_benchmark_fiducials'. No physical micrograph was verified.",
+    "PROVES: Mathematical correctness of affine registration and CAD projection algorithm.",
+    "DOES NOT PROVE: Physical silicon authenticity, die markings, or macro presence without real optical micrograph capture.",
+    "DOES NOT PROVE: Transistor-level netlist equivalence or individual gate functions."
   ]
 }

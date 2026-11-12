@@ -4,6 +4,13 @@ use crate::canonical::CanonicalJson;
 use crate::signer::{hex, CryptoSigner, EvidenceError};
 use ed25519_dalek::SigningKey;
 use serde::{Deserialize, Serialize};
+use std::path::Path;
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum KeyProvenance {
+    DevelopmentHostKey { key_file_path: Option<String> },
+    HardwareRootOfTrust { cert_serial: String },
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TargetHardwareEvidence {
@@ -22,6 +29,8 @@ pub struct TierClaim {
     pub tier: String,
     pub claim_name: String,
     pub description: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub artifact_rel_path: Option<String>,
     pub artifact_digest_sha512: String,
     pub verified_passed: bool,
     pub metadata: serde_json::Value,
@@ -32,6 +41,7 @@ pub struct EvidencePayload {
     pub schema_version: String,
     pub bundle_id: String,
     pub created_at_utc: String,
+    pub key_provenance: KeyProvenance,
     pub target_hardware: TargetHardwareEvidence,
     pub claims: Vec<TierClaim>,
 }
@@ -43,6 +53,20 @@ pub struct EvidenceBundle {
     pub attestation_signature: String,
     pub signer_public_key_hex: String,
     pub verification_instructions: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ArtifactStatus {
+    pub rel_path: String,
+    pub expected_sha512: String,
+    pub actual_sha512: Option<String>,
+    pub status: String, // "MATCH", "MISMATCH", "FILE_NOT_FOUND", "READ_ERROR"
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ArtifactVerificationReport {
+    pub all_artifacts_match: bool,
+    pub artifacts: Vec<ArtifactStatus>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -63,6 +87,7 @@ impl EvidenceEngine {
         hardware: TargetHardwareEvidence,
         claims: Vec<TierClaim>,
         signing_key: &SigningKey,
+        key_provenance: KeyProvenance,
     ) -> Result<EvidenceBundle, EvidenceError> {
         let verifying_key = signing_key.verifying_key();
         let pubkey_hex = hex::encode(verifying_key.to_bytes());
@@ -71,6 +96,7 @@ impl EvidenceEngine {
             schema_version: "trustprint.v1.evidence".to_string(),
             bundle_id: format!("TPE-{}", &pubkey_hex[..8]),
             created_at_utc: chrono::Utc::now().to_rfc3339(),
+            key_provenance,
             target_hardware: hardware,
             claims,
         };
@@ -92,6 +118,22 @@ impl EvidenceEngine {
             signer_public_key_hex: pubkey_hex,
             verification_instructions: "Verify by re-canonicalizing payload (RFC 8785), computing SHA-512, and verifying Ed25519 signature.".to_string(),
         })
+    }
+
+    /// Verifies the cryptographic integrity and digital signature of an EvidenceBundle,
+    /// optionally checking that the signer public key belongs to an explicit whitelist of trusted public keys.
+    pub fn verify_bundle_with_trust_anchor(
+        bundle: &EvidenceBundle,
+        trusted_public_keys: Option<&[&str]>,
+    ) -> Result<VerificationReport, EvidenceError> {
+        if let Some(trusted) = trusted_public_keys {
+            if !trusted.is_empty() && !trusted.contains(&bundle.signer_public_key_hex.as_str()) {
+                return Err(EvidenceError::UntrustedSigner(
+                    bundle.signer_public_key_hex.clone(),
+                ));
+            }
+        }
+        Self::verify_bundle(bundle)
     }
 
     /// Verifies the cryptographic integrity and digital signature of an EvidenceBundle.
@@ -122,8 +164,15 @@ impl EvidenceEngine {
 
         // 4. Summarize claims
         for claim in &bundle.payload.claims {
-            let status_str = if claim.verified_passed { "PASS" } else { "FAIL" };
-            details.push(format!("[{}] {} -> {}", claim.tier, claim.claim_name, status_str));
+            let status_str = if claim.verified_passed {
+                "PASS"
+            } else {
+                "FAIL"
+            };
+            details.push(format!(
+                "[{}] {} -> {}",
+                claim.tier, claim.claim_name, status_str
+            ));
         }
 
         Ok(VerificationReport {
@@ -134,6 +183,64 @@ impl EvidenceEngine {
             sha512_digest: computed_digest,
             details,
         })
+    }
+
+    /// Validates all referenced on-disk artifact files against their recorded SHA-512 digests.
+    pub fn verify_bundle_artifacts(
+        bundle: &EvidenceBundle,
+        base_dir: &Path,
+    ) -> ArtifactVerificationReport {
+        let mut all_match = true;
+        let mut statuses = Vec::new();
+
+        for claim in &bundle.payload.claims {
+            if let Some(rel_path) = &claim.artifact_rel_path {
+                let full_path = base_dir.join(rel_path);
+                if !full_path.exists() {
+                    all_match = false;
+                    statuses.push(ArtifactStatus {
+                        rel_path: rel_path.clone(),
+                        expected_sha512: claim.artifact_digest_sha512.clone(),
+                        actual_sha512: None,
+                        status: "FILE_NOT_FOUND".to_string(),
+                    });
+                } else {
+                    match std::fs::read(&full_path) {
+                        Ok(bytes) => {
+                            let actual_hash = CryptoSigner::sha512_digest(&bytes);
+                            let matched = actual_hash == claim.artifact_digest_sha512;
+                            if !matched {
+                                all_match = false;
+                            }
+                            statuses.push(ArtifactStatus {
+                                rel_path: rel_path.clone(),
+                                expected_sha512: claim.artifact_digest_sha512.clone(),
+                                actual_sha512: Some(actual_hash),
+                                status: if matched {
+                                    "MATCH".to_string()
+                                } else {
+                                    "MISMATCH".to_string()
+                                },
+                            });
+                        }
+                        Err(_) => {
+                            all_match = false;
+                            statuses.push(ArtifactStatus {
+                                rel_path: rel_path.clone(),
+                                expected_sha512: claim.artifact_digest_sha512.clone(),
+                                actual_sha512: None,
+                                status: "READ_ERROR".to_string(),
+                            });
+                        }
+                    }
+                }
+            }
+        }
+
+        ArtifactVerificationReport {
+            all_artifacts_match: all_match,
+            artifacts: statuses,
+        }
     }
 }
 
@@ -162,6 +269,7 @@ mod tests {
                 tier: "DESIGN_RTL".to_string(),
                 claim_name: "bio.sv SFR Interface Verification".to_string(),
                 description: "Extracted 34 SFR registers from silicon RTL".to_string(),
+                artifact_rel_path: Some("rtl/bio.sv".to_string()),
                 artifact_digest_sha512: "11223344".to_string(),
                 verified_passed: true,
                 metadata: serde_json::json!({ "sfr_count": 34, "ports": 70 }),
@@ -169,17 +277,62 @@ mod tests {
             TierClaim {
                 tier: "SIMULATION_VERILATOR".to_string(),
                 claim_name: "Multi-Core BIO 700MHz Waveform Conformance".to_string(),
-                description: "Evaluated 131 cycles, 108.528ns mean period, 0.0ps jitter".to_string(),
+                description: "Evaluated 131 cycles, 108.528ns mean period, 0.0ps jitter"
+                    .to_string(),
+                artifact_rel_path: None,
                 artifact_digest_sha512: "55667788".to_string(),
                 verified_passed: true,
                 metadata: serde_json::json!({ "cycles": 131, "period_ns": 108.528 }),
             },
         ];
 
-        let bundle = EvidenceEngine::create_bundle(hw, claims, &sk).unwrap();
+        let provenance = KeyProvenance::DevelopmentHostKey {
+            key_file_path: Some("~/.trustprint/dev_key.sec".to_string()),
+        };
+        let bundle = EvidenceEngine::create_bundle(hw, claims, &sk, provenance).unwrap();
         let report = EvidenceEngine::verify_bundle(&bundle).unwrap();
 
         assert!(report.is_valid);
         assert_eq!(report.claims_count, 2);
+
+        // Trust anchor check: valid key passes
+        let pubkey = bundle.signer_public_key_hex.clone();
+        let anchor_res = EvidenceEngine::verify_bundle_with_trust_anchor(&bundle, Some(&[&pubkey]));
+        assert!(anchor_res.is_ok());
+
+        // Trust anchor check: foreign key fails with UntrustedSigner
+        let foreign_key = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+        let untrusted_res =
+            EvidenceEngine::verify_bundle_with_trust_anchor(&bundle, Some(&[foreign_key]));
+        assert!(untrusted_res.is_err());
+        match untrusted_res.unwrap_err() {
+            EvidenceError::UntrustedSigner(_) => {}
+            other => panic!("Expected UntrustedSigner error, got {:?}", other),
+        }
+
+        // Tampering test 1: alter claim description
+        let mut tampered_bundle = bundle.clone();
+        tampered_bundle.payload.claims[0].description = "Tampered description".to_string();
+        let tampered_res = EvidenceEngine::verify_bundle(&tampered_bundle);
+        assert!(tampered_res.is_err());
+        match tampered_res.unwrap_err() {
+            EvidenceError::HashMismatch { .. } => {}
+            other => panic!("Expected HashMismatch on tampered claim, got {:?}", other),
+        }
+
+        // Tampering test 2: alter signature byte
+        let mut tampered_sig_bundle = bundle.clone();
+        let mut sig_chars: Vec<char> = tampered_sig_bundle.attestation_signature.chars().collect();
+        sig_chars[0] = if sig_chars[0] == '0' { '1' } else { '0' };
+        tampered_sig_bundle.attestation_signature = sig_chars.into_iter().collect();
+        let sig_tampered_res = EvidenceEngine::verify_bundle(&tampered_sig_bundle);
+        assert!(sig_tampered_res.is_err());
+        match sig_tampered_res.unwrap_err() {
+            EvidenceError::VerificationFailed => {}
+            other => panic!(
+                "Expected VerificationFailed on corrupted signature, got {:?}",
+                other
+            ),
+        }
     }
 }

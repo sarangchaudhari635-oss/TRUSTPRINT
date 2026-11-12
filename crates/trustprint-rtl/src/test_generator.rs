@@ -171,4 +171,3 @@ mod tests {
         assert!(json.contains("\"sw\": \"blink\""));
     }
 }
-

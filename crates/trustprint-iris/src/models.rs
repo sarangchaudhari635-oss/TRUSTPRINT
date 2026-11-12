@@ -126,14 +126,41 @@ impl AffineTransform {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum InspectionMode {
+    DemonstrationSynthetic {
+        synthetic_source: String,
+    },
+    PhysicalMicrograph {
+        micrograph_path: String,
+        micrograph_sha512: String,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct LandmarkPair {
     pub name: String,
     pub cad_um: Point2D,
     pub observed_px: Point2D,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub residual_px: Option<Point2D>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub residual_distance_px: Option<f64>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+impl LandmarkPair {
+    pub fn new(name: impl Into<String>, cad_um: Point2D, observed_px: Point2D) -> Self {
+        Self {
+            name: name.into(),
+            cad_um,
+            observed_px,
+            residual_px: None,
+            residual_distance_px: None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MacroOverlayResult {
     pub id: String,
     pub name: String,
@@ -143,14 +170,17 @@ pub struct MacroOverlayResult {
     pub feature_confidence: f64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct OpticalInspectionReport {
     pub timestamp_utc: String,
     pub epistemic_tier: String,
+    pub inspection_mode: InspectionMode,
+    pub is_synthetic: bool,
+    pub verification_status: String,
     pub chip_name: String,
     pub transform: AffineTransform,
     pub rms_error_px: f64,
+    pub landmarks: Vec<LandmarkPair>,
     pub overlays: Vec<MacroOverlayResult>,
     pub scientific_caveats: Vec<String>,
 }
-

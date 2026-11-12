@@ -9,4 +9,3 @@ pub mod test_generator;
 
 pub use parser::{ModuleInterface, PortDeclaration, PortDirection, RegisterDefinition, RtlParser};
 pub use test_generator::{BioSimTestConfig, TestGenerator};
-

@@ -1,4 +1,10 @@
-//! RISC-V Sv32 / Sv39 Hardware MMU Page Translation and Fault Emulator
+//! RISC-V Sv32 Hardware MMU Page Translation and Fault Emulator
+//!
+//! Models the Baochip-1x VexRiscv RV32-IMAC Sv32 virtual memory system:
+//! - 32-bit Virtual Address: VPN[1] (10 bits) | VPN[0] (10 bits) | Page Offset (12 bits)
+//! - 34-bit Physical Address: PPN[1] (12 bits) | PPN[0] (10 bits) | Page Offset (12 bits)
+//! - 4 KiB Base Pages with hardware permission bits (Valid, Read, Write, Execute, User, Global, Accessed, Dirty)
+//! - Explicitly labeled as HOST_SV32_MODEL for epistemic clarity.
 
 use serde::{Deserialize, Serialize};
 use thiserror::Error;

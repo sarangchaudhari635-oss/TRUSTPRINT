@@ -46,10 +46,16 @@ impl std::fmt::Display for EpistemicTier {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::DesignRtl => write!(f, "DESIGN_RTL (Source-Level Structural Specification)"),
-            Self::SimulationVerilator => write!(f, "SIMULATION_VERILATOR (Cycle-Accurate Emulation)"),
-            Self::PhysicalIoBehavioural => write!(f, "PHYSICAL_IO_BEHAVIOURAL (700 MHz Silicon Probing)"),
+            Self::SimulationVerilator => {
+                write!(f, "SIMULATION_VERILATOR (Cycle-Accurate Emulation)")
+            }
+            Self::PhysicalIoBehavioural => {
+                write!(f, "PHYSICAL_IO_BEHAVIOURAL (700 MHz Silicon Probing)")
+            }
             Self::OpticalIris => write!(f, "OPTICAL_IRIS (1050nm SWIR Die Microscopy)"),
-            Self::CryptographicAttestation => write!(f, "CRYPTOGRAPHIC_ATTESTATION (Hardware Root of Trust)"),
+            Self::CryptographicAttestation => {
+                write!(f, "CRYPTOGRAPHIC_ATTESTATION (Hardware Root of Trust)")
+            }
         }
     }
 }
@@ -76,12 +82,12 @@ impl Default for TargetHardwareInfo {
             soc_name: "Baochip-1x".to_string(),
             process_node: "TSMC 22nm ULL".to_string(),
             board_model: "Dabao v3c".to_string(),
-            cpu_core: "VexRiscv RV32-IMAC (Sv39 MMU)".to_string(),
+            cpu_core: "VexRiscv RV32-IMAC (Sv32 MMU)".to_string(),
             cpu_freq_hz: 350_000_000,
             bio_cores: 4,
             bio_freq_hz: 700_000_000,
-            sram_size_bytes: 2 * 1024 * 1024,   // 2 MiB
-            reram_size_bytes: 4 * 1024 * 1024,  // 4 MiB
+            sram_size_bytes: 2 * 1024 * 1024,  // 2 MiB
+            reram_size_bytes: 4 * 1024 * 1024, // 4 MiB
         }
     }
 }
@@ -100,13 +106,19 @@ pub enum ConformanceVerdict {
 /// Parametric timing measurements computed from simulation or physical traces.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TimingMetrics {
+    pub signal_name: String,
     pub expected_period_ns: f64,
     pub observed_period_mean_ns: f64,
+    pub period_delta_percent: f64,
+    pub expected_duty_cycle_percent: f64,
+    pub duty_cycle_percent: f64,
+    pub duty_delta_percent: f64,
     pub jitter_peak_to_peak_ps: f64,
     pub jitter_rms_ps: f64,
-    pub duty_cycle_percent: f64,
     pub cycles_analyzed: u64,
+    pub artifact_hash_sha512: Option<String>,
     pub verdict: ConformanceVerdict,
+    pub verdict_reason: String,
 }
 
 #[cfg(test)]
@@ -130,4 +142,3 @@ mod tests {
         assert_eq!(hw.sram_size_bytes, 2097152);
     }
 }
-

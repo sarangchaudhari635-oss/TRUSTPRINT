@@ -65,7 +65,7 @@ impl RtlParser {
     /// Parses a Verilog/SystemVerilog source string and extracts the module interface.
     pub fn parse_str(content: &str, source_path: &str) -> Result<ModuleInterface, RtlError> {
         let clean_content = Self::strip_comments(content);
-        
+
         // Find module name
         let module_name = Self::extract_module_name(&clean_content)
             .ok_or_else(|| RtlError::NoModuleFound(source_path.to_string()))?;
@@ -128,8 +128,8 @@ impl RtlParser {
     fn extract_module_name(s: &str) -> Option<String> {
         for line in s.lines() {
             let trimmed = line.trim();
-            if trimmed.starts_with("module ") {
-                let parts: Vec<&str> = trimmed["module ".len()..]
+            if let Some(stripped) = trimmed.strip_prefix("module ") {
+                let parts: Vec<&str> = stripped
                     .split(|c: char| c == '(' || c == '#' || c == ';' || c.is_whitespace())
                     .filter(|p| !p.is_empty())
                     .collect();
@@ -219,9 +219,32 @@ impl RtlParser {
         ports
     }
 
+    fn eval_simple_expr(expr: &str) -> Option<u32> {
+        let clean = expr.trim();
+        if let Ok(val) = clean.parse::<u32>() {
+            return Some(val);
+        }
+        if let Some((left, right)) = clean.split_once('-') {
+            if let (Ok(l), Ok(r)) = (left.trim().parse::<u32>(), right.trim().parse::<u32>()) {
+                if l >= r {
+                    return Some(l - r);
+                }
+            }
+        }
+        if let Some((left, right)) = clean.split_once('+') {
+            if let (Ok(l), Ok(r)) = (left.trim().parse::<u32>(), right.trim().parse::<u32>()) {
+                return Some(l + r);
+            }
+        }
+        None
+    }
+
     fn parse_range_width(range_str: &str) -> u32 {
         if let Some((msb_str, lsb_str)) = range_str.split_once(':') {
-            if let (Ok(msb), Ok(lsb)) = (msb_str.trim().parse::<u32>(), lsb_str.trim().parse::<u32>()) {
+            if let (Some(msb), Some(lsb)) = (
+                Self::eval_simple_expr(msb_str),
+                Self::eval_simple_expr(lsb_str),
+            ) {
                 if msb >= lsb {
                     return (msb - lsb) + 1;
                 }
@@ -249,8 +272,8 @@ impl RtlParser {
         let mut registers = Vec::new();
         for line in s.lines() {
             let trimmed = line.trim();
-            if trimmed.starts_with("`define ") {
-                let rest = trimmed["`define ".len()..].trim();
+            if let Some(stripped) = trimmed.strip_prefix("`define ") {
+                let rest = stripped.trim();
                 let parts: Vec<&str> = rest.split_whitespace().collect();
                 if parts.len() >= 2 && (parts[0].contains("REG_") || parts[0].contains("ADDR_")) {
                     registers.push(RegisterDefinition {
@@ -271,8 +294,7 @@ impl RtlParser {
                             let after_params = rem[open_paren + close_paren + 1..].trim();
                             let inst_name = after_params
                                 .split(|c: char| c == '(' || c.is_whitespace())
-                                .filter(|p| !p.is_empty())
-                                .next()
+                                .find(|p| !p.is_empty())
                                 .unwrap_or("")
                                 .to_string();
 
@@ -285,15 +307,21 @@ impl RtlParser {
                                     if let Some(p1) = t[a_start..].find('(') {
                                         if let Some(p2) = t[a_start + p1..].find(')') {
                                             let raw = t[a_start + p1 + 1..a_start + p1 + p2].trim();
-                                            let hex_val = raw.trim_start_matches("'h").trim_start_matches("0x");
-                                            offset = format!("0x{:02x}", u32::from_str_radix(hex_val, 16).unwrap_or(0));
+                                            let hex_val = raw
+                                                .trim_start_matches("'h")
+                                                .trim_start_matches("0x");
+                                            offset = format!(
+                                                "0x{:02x}",
+                                                u32::from_str_radix(hex_val, 16).unwrap_or(0)
+                                            );
                                         }
                                     }
                                 }
                                 if let Some(dw_start) = t.find(".DW") {
                                     if let Some(p1) = t[dw_start..].find('(') {
                                         if let Some(p2) = t[dw_start + p1..].find(')') {
-                                            let raw = t[dw_start + p1 + 1..dw_start + p1 + p2].trim();
+                                            let raw =
+                                                t[dw_start + p1 + 1..dw_start + p1 + p2].trim();
                                             if let Ok(w) = raw.parse::<u32>() {
                                                 dw = Some(w);
                                             }
@@ -381,5 +409,28 @@ mod tests {
         assert_eq!(res.registers[2].name, "sfr_qdiv0");
         assert_eq!(res.registers[2].offset_hex, "0x50");
     }
-}
 
+    #[test]
+    fn test_parse_non_ansi_ports_and_arithmetic_widths() {
+        let verilog = r#"
+        module non_ansi_module (clk, rst_n, bus_data, out_flag);
+            input clk;
+            input rst_n;
+            input [32-1:0] bus_data;
+            output out_flag;
+        endmodule
+        "#;
+
+        let res = RtlParser::parse_str(verilog, "non_ansi.v").unwrap();
+        assert_eq!(res.module_name, "non_ansi_module");
+        assert_eq!(res.ports.len(), 4);
+
+        let bus_port = res.ports.iter().find(|p| p.name == "bus_data").unwrap();
+        assert_eq!(bus_port.bit_width, 32);
+        assert_eq!(bus_port.direction, PortDirection::Input);
+
+        let out_port = res.ports.iter().find(|p| p.name == "out_flag").unwrap();
+        assert_eq!(out_port.bit_width, 1);
+        assert_eq!(out_port.direction, PortDirection::Output);
+    }
+}

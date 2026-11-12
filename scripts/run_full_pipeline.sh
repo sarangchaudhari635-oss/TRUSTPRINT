@@ -23,7 +23,10 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-BIO_SIM_DIR="/home/sarang_haudhari/bio-sim"
+BIO_SIM_DIR="${BIO_SIM_DIR:-$(cd "$ROOT/.." && pwd)/bio-sim}"
+if [ ! -d "$BIO_SIM_DIR" ] && [ -d "/home/$USER/bio-sim" ]; then
+    BIO_SIM_DIR="/home/$USER/bio-sim"
+fi
 ARTIFACTS="$ROOT/artifacts"
 CARGO="cargo"
 
@@ -61,19 +64,18 @@ if [ -d "$BIO_SIM_DIR" ]; then
     # Run pre-built simulation binary; re-build if stale
     if [ ! -f "build/bio_sim" ]; then
         echo "  Rebuilding Verilator model..." | tee -a "$REPORT"
-        make -C "$BIO_SIM_DIR" 2>&1 | tail -5 | tee -a "$REPORT"
+        make -C "$BIO_SIM_DIR" 2>&1 | tail -5 | tee -a "$REPORT" || fail "Failed to build bio_sim"
     fi
     ./build/bio_sim --cycles 10000 \
         --config "$ROOT/bio/configs/trustprint_multicore.jsonc" \
         --firmware0 "$ARTIFACTS/trustprint_gen.bin" \
         --firmware1 "$ARTIFACTS/trustprint_sampler.bin" \
         --vcd "$BIO_SIM_DIR/waveform/trustprint_multicore.fst" \
-        2>&1 | tail -10 | tee -a "$REPORT" \
-        || echo "  [NOTE] bio_sim CLI flags differ — using existing waveform artifact." | tee -a "$REPORT"
+        2>&1 | tee -a "$REPORT" || fail "bio_sim simulation run failed with nonzero exit code"
     pass "BIO simulation stage complete."
     cd "$ROOT"
 else
-    echo "  [SKIP] bio-sim directory not found at $BIO_SIM_DIR (WSL path only)" | tee -a "$REPORT"
+    echo "  [SKIP] bio-sim directory not found at $BIO_SIM_DIR (using validated artifacts)" | tee -a "$REPORT"
 fi
 echo "" >> "$REPORT"
 

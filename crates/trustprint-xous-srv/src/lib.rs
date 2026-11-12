@@ -61,7 +61,11 @@ impl TrustprintXousServer {
     ) -> Result<AttestationResponse, MmuTrap> {
         let client_space = match self.client_spaces.get(&req.client_pid) {
             Some(space) => space,
-            None => return Err(MmuTrap::LoadPageFault { vaddr: req.virtual_addr }),
+            None => {
+                return Err(MmuTrap::LoadPageFault {
+                    vaddr: req.virtual_addr,
+                })
+            }
         };
 
         // MMU hardware checks translation for the requested memory range
@@ -81,6 +85,7 @@ impl TrustprintXousServer {
             length_bytes: req.length_bytes,
             memory_checksum: checksum,
             mmu_isolation_verified: true,
+            evaluation_model: "HOST_SV32_MODEL".to_string(),
         })
     }
 
@@ -93,10 +98,38 @@ impl TrustprintXousServer {
     ) -> Result<usize, MmuTrap> {
         let client_space = match self.client_spaces.get(&client_pid) {
             Some(space) => space,
-            None => return Err(MmuTrap::LoadPageFault { vaddr: target_vaddr }),
+            None => {
+                return Err(MmuTrap::LoadPageFault {
+                    vaddr: target_vaddr,
+                })
+            }
         };
 
         client_space.translate(target_vaddr, is_write, false, PrivilegeMode::User)
+    }
+
+    /// Simulates attempting to execute instructions from an unmapped or non-executable page.
+    pub fn simulate_execute_access(
+        &self,
+        client_pid: u32,
+        target_vaddr: usize,
+    ) -> Result<usize, MmuTrap> {
+        let client_space = match self.client_spaces.get(&client_pid) {
+            Some(space) => space,
+            None => {
+                return Err(MmuTrap::InstructionPageFault {
+                    vaddr: target_vaddr,
+                })
+            }
+        };
+
+        client_space.translate(target_vaddr, false, true, PrivilegeMode::User)
+    }
+}
+
+impl Default for TrustprintXousServer {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -127,7 +160,9 @@ mod tests {
         server.register_client(3, "rogue_app");
 
         // Attempt to read unmapped virtual address 0xDEAD_BEEF
-        let err = server.simulate_rogue_access(3, 0xDEAD_BEEF, false).unwrap_err();
+        let err = server
+            .simulate_rogue_access(3, 0xDEAD_BEEF, false)
+            .unwrap_err();
         assert_eq!(err, MmuTrap::LoadPageFault { vaddr: 0xDEAD_BEEF });
     }
 
@@ -137,8 +172,19 @@ mod tests {
         server.register_client(3, "rogue_app");
 
         // Code page at 0x0001_0000 has READ | EXECUTE, but NOT WRITE
-        let err = server.simulate_rogue_access(3, 0x0001_0000, true).unwrap_err();
+        let err = server
+            .simulate_rogue_access(3, 0x0001_0000, true)
+            .unwrap_err();
         assert_eq!(err, MmuTrap::StorePageFault { vaddr: 0x0001_0000 });
     }
-}
 
+    #[test]
+    fn test_execute_from_data_page_triggers_instruction_page_fault() {
+        let mut server = TrustprintXousServer::new();
+        server.register_client(3, "rogue_app");
+
+        // Data page at 0x1000_0000 has READ | WRITE | USER, but NOT EXECUTE
+        let err = server.simulate_execute_access(3, 0x1000_0000).unwrap_err();
+        assert_eq!(err, MmuTrap::InstructionPageFault { vaddr: 0x1000_0000 });
+    }
+}

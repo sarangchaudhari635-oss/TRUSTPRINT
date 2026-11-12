@@ -1,8 +1,23 @@
+// ============================================================================
+// TRUSTPRINT BIO Multi-Core Generator Firmware (Core 0)
+//
+// Target: Baochip-1x PicoRV32 BIO Coprocessor Core 0
+// Role: Deterministic square-wave transition generator with quantum lockstep
+// Output Pin: GPIO Pin 21
+//
+// HARDWARE LOOPBACK WIRING SPECIFICATION:
+// Core 0 drives Output on GPIO Pin 21.
+// Core 1 samples Input on GPIO Pin 20.
+// On physical Dabao evaluation silicon, bridge Pin 21 to Pin 20 using
+// a standard 0.1" jumper on the expansion header.
+// ============================================================================
+
 #include <stdint.h>
 #include "bio.h" // Must be first to place _start at 0x0
 
-#define PROBE_PIN 21
-#define PIN_MASK (1 << PROBE_PIN)
+#define GEN_OUTPUT_PIN 21
+#define PIN_MASK (1 << GEN_OUTPUT_PIN)
+#define ACK_TIMEOUT_CYCLES 50000
 
 void main(void) {
     uint32_t epoch = 0;
