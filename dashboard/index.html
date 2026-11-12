@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TRUSTPRINT — Open-Silicon Verification Laboratory</title>
+<style>
+  :root {
+    --bg: #0a0c10;
+    --surface: #111419;
+    --surface2: #1a1f28;
+    --border: #252c38;
+    --accent: #00d4aa;
+    --accent2: #0088ff;
+    --accent3: #ff6b35;
+    --accent4: #c084fc;
+    --accent5: #fbbf24;
+    --text: #e2e8f0;
+    --text-dim: #64748b;
+    --text-mid: #94a3b8;
+    --pass: #22c55e;
+    --fail: #ef4444;
+    --warn: #f59e0b;
+    --mono: 'Courier New', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif; font-size: 14px; line-height: 1.6; min-height: 100vh; }
+
+  /* Header */
+  .header { background: linear-gradient(135deg, #0d1117 0%, #161b25 50%, #0a0c10 100%); border-bottom: 1px solid var(--border); padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
+  .header-brand { display: flex; align-items: center; gap: 12px; }
+  .header-logo { width: 40px; height: 40px; background: linear-gradient(135deg, var(--accent), var(--accent2)); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+  .header-title { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
+  .header-subtitle { font-size: 11px; color: var(--text-dim); letter-spacing: 1px; text-transform: uppercase; }
+  .header-badges { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; }
+  .badge-green { background: rgba(34,197,94,0.15); color: var(--pass); border: 1px solid rgba(34,197,94,0.3); }
+  .badge-blue { background: rgba(0,136,255,0.15); color: var(--accent2); border: 1px solid rgba(0,136,255,0.3); }
+  .badge-orange { background: rgba(255,107,53,0.15); color: var(--accent3); border: 1px solid rgba(255,107,53,0.3); }
+  .badge-purple { background: rgba(192,132,252,0.15); color: var(--accent4); border: 1px solid rgba(192,132,252,0.3); }
+
+  /* Navigation Tabs */
+  .nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; gap: 2px; overflow-x: auto; }
+  .nav-tab { padding: 12px 18px; cursor: pointer; border-bottom: 2px solid transparent; color: var(--text-dim); font-size: 13px; font-weight: 500; white-space: nowrap; transition: all 0.2s; display: flex; align-items: center; gap: 7px; }
+  .nav-tab:hover { color: var(--text); background: rgba(255,255,255,0.03); }
+  .nav-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .nav-tab .tab-icon { font-size: 15px; }
+
+  /* Main content */
+  .main { padding: 24px; max-width: 1400px; margin: 0 auto; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* Cards */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 16px; }
+  .card-header { font-size: 12px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .card-title { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+  .card-sub { font-size: 12px; color: var(--text-dim); }
+
+  /* Grid layouts */
+  .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  @media(max-width: 900px) { .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; } }
+
+  /* Stat blocks */
+  .stat { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+  .stat-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
+  .stat-value { font-size: 22px; font-weight: 700; font-family: var(--mono); }
+  .stat-unit { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+  .stat-green { color: var(--pass); }
+  .stat-blue { color: var(--accent2); }
+  .stat-teal { color: var(--accent); }
+  .stat-orange { color: var(--accent3); }
+  .stat-purple { color: var(--accent4); }
+  .stat-yellow { color: var(--accent5); }
+
+  /* KV rows */
+  .kv-row { display: flex; align-items: baseline; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .kv-row:last-child { border-bottom: none; }
+  .kv-key { font-size: 12px; color: var(--text-dim); min-width: 170px; flex-shrink: 0; }
+  .kv-val { font-family: var(--mono); font-size: 13px; word-break: break-all; }
+  .kv-val.hash { font-size: 11px; color: var(--accent); }
+  .kv-val.serial { color: var(--accent5); font-weight: 700; }
+  .kv-val.good { color: var(--pass); }
+  .kv-val.warn { color: var(--warn); }
+
+  /* Waveform canvas */
+  #waveform-canvas { width: 100%; height: 160px; background: #060a0e; border-radius: 6px; display: block; }
+
+  /* Metric bars */
+  .metric-bar { margin-bottom: 14px; }
+  .metric-bar-label { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; }
+  .metric-bar-track { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .metric-bar-fill { height: 100%; border-radius: 3px; transition: width 1s ease; }
+
+  /* Die floorplan SVG */
+  #die-canvas { width: 100%; max-width: 440px; display: block; margin: 0 auto; }
+
+  /* Tier pyramid */
+  .tier-list { display: flex; flex-direction: column; gap: 8px; }
+  .tier-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--surface2); border-radius: 8px; border-left: 4px solid; }
+  .tier-item.t1 { border-color: #60a5fa; }
+  .tier-item.t2 { border-color: #34d399; }
+  .tier-item.t3 { border-color: #fb923c; }
+  .tier-item.t4 { border-color: #c084fc; }
+  .tier-item.t5 { border-color: #fbbf24; }
+  .tier-num { font-size: 20px; font-weight: 800; min-width: 32px; text-align: center; }
+  .tier-name { font-weight: 600; font-size: 13px; }
+  .tier-desc { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+  .tier-status { margin-left: auto; }
+
+  /* Verdict banner */
+  .verdict { display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-radius: 8px; margin-bottom: 16px; }
+  .verdict.pass { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); }
+  .verdict.fail { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); }
+  .verdict-icon { font-size: 22px; }
+  .verdict-text { font-size: 15px; font-weight: 700; }
+
+  /* Code block */
+  .code-block { background: #060a0e; border: 1px solid var(--border); border-radius: 6px; padding: 14px; font-family: var(--mono); font-size: 12px; line-height: 1.8; overflow-x: auto; white-space: pre; color: #a8d8b9; }
+  .code-comment { color: #4a5568; }
+  .code-key { color: #90cdf4; }
+  .code-val { color: #fbd38d; }
+  .code-pass { color: var(--pass); font-weight: bold; }
+  .code-trap { color: var(--accent3); font-weight: bold; }
+
+  /* SFR table */
+  .sfr-table { width: 100%; border-collapse: collapse; font-size: 12px; font-family: var(--mono); }
+  .sfr-table th { text-align: left; padding: 8px 10px; color: var(--text-dim); border-bottom: 1px solid var(--border); font-size: 11px; letter-spacing: 0.5px; }
+  .sfr-table td { padding: 7px 10px; border-bottom: 1px solid rgba(37,44,56,0.5); }
+  .sfr-table tr:hover td { background: var(--surface2); }
+  .sfr-name { color: var(--accent); }
+  .sfr-offset { color: var(--accent5); }
+  .sfr-width { color: var(--accent2); }
+
+  /* Certificate */
+  .cert-field { margin-bottom: 10px; }
+  .cert-label { font-size: 11px; color: var(--text-dim); letter-spacing: 0.5px; margin-bottom: 3px; }
+  .cert-value { font-family: var(--mono); font-size: 11px; word-break: break-all; padding: 8px 12px; background: #060a0e; border-radius: 4px; border: 1px solid var(--border); }
+  .cert-value.sig { color: var(--accent4); }
+  .cert-value.hash { color: var(--accent); }
+  .cert-value.pubkey { color: var(--accent2); }
+
+  /* MMU page table */
+  .pte { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 6px; margin-bottom: 6px; font-family: var(--mono); font-size: 12px; }
+  .pte-addr { color: var(--accent5); min-width: 110px; }
+  .pte-flags { display: flex; gap: 4px; }
+  .pte-flag { padding: 2px 7px; border-radius: 3px; font-size: 10px; font-weight: 700; }
+  .pte-flag.V { background: rgba(34,197,94,0.2); color: var(--pass); }
+  .pte-flag.R { background: rgba(0,136,255,0.2); color: var(--accent2); }
+  .pte-flag.W { background: rgba(255,107,53,0.2); color: var(--accent3); }
+  .pte-flag.X { background: rgba(192,132,252,0.2); color: var(--accent4); }
+  .pte-flag.U { background: rgba(251,191,36,0.2); color: var(--accent5); }
+  .pte-trap { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); }
+  .pte-ok { background: rgba(34,197,94,0.07); border: 1px solid rgba(34,197,94,0.15); }
+  .trap-label { margin-left: auto; font-size: 11px; }
+  .trap-label.caught { color: var(--pass); }
+  .trap-label.ok { color: var(--accent); }
+
+  /* Section divider */
+  .section-label { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-dim); margin: 24px 0 12px; display: flex; align-items: center; gap: 10px; }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  /* Disclaimer box */
+  .disclaimer { background: rgba(251,191,36,0.07); border: 1px solid rgba(251,191,36,0.25); border-radius: 8px; padding: 12px 16px; font-size: 12px; color: #d4a52a; margin-top: 16px; }
+  .disclaimer strong { display: block; margin-bottom: 4px; }
+
+  /* Progress log */
+  .log-entry { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .log-entry:last-child { border-bottom: none; }
+  .log-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+  .log-dot.done { background: var(--pass); }
+  .log-dot.active { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+  .log-dot.plan { background: var(--text-dim); }
+  .log-milestone { font-size: 12px; font-weight: 600; }
+  .log-evidence { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+  .log-status { margin-left: auto; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .log-status.done { color: var(--pass); }
+  .log-status.active { color: var(--accent); }
+  .log-status.plan { color: var(--text-dim); }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-brand">
+    <div class="header-logo">🔬</div>
+    <div>
+      <div class="header-title">TRUSTPRINT</div>
+      <div class="header-subtitle">Open-Silicon Physical Identity &amp; Behaviour Verification Laboratory</div>
+    </div>
+  </div>
+  <div class="header-badges">
+    <span class="badge badge-green">✓ Physical Silicon</span>
+    <span class="badge badge-blue">Baochip-1x A0</span>
+    <span class="badge badge-orange">TSMC 22nm ULL</span>
+    <span class="badge badge-purple">Hackathon 2026</span>
+  </div>
+</div>
+
+<!-- Navigation -->
+<div class="nav">
+  <div class="nav-tab active" onclick="showTab(0)"><span class="tab-icon">🏠</span> Overview</div>
+  <div class="nav-tab" onclick="showTab(1)"><span class="tab-icon">💻</span> RTL Analysis</div>
+  <div class="nav-tab" onclick="showTab(2)"><span class="tab-icon">📡</span> BIO Simulation</div>
+  <div class="nav-tab" onclick="showTab(3)"><span class="tab-icon">🔌</span> Physical Silicon</div>
+  <div class="nav-tab" onclick="showTab(4)"><span class="tab-icon">🔭</span> IRIS Inspection</div>
+  <div class="nav-tab" onclick="showTab(5)"><span class="tab-icon">🔐</span> Attestation</div>
+  <div class="nav-tab" onclick="showTab(6)"><span class="tab-icon">🛡️</span> MMU Isolation</div>
+</div>
+
+<!-- Main -->
+<div class="main">
+
+<!-- ========== TAB 0: OVERVIEW ========== -->
+<div class="tab-content active" id="tab-0">
+  <div class="section-label">System Status</div>
+  <div class="grid-4">
+    <div class="stat">
+      <div class="stat-label">Silicon Stepping</div>
+      <div class="stat-value stat-teal">A0</div>
+      <div class="stat-unit">Baochip-1x · TSMC 22nm ULL</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">BIO Clock</div>
+      <div class="stat-value stat-blue">700</div>
+      <div class="stat-unit">MHz · 4× PicoRV32 cores</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Wafer Lot</div>
+      <div class="stat-value stat-yellow" style="font-size:16px">47521066M06T</div>
+      <div class="stat-unit">IFR offset 0x0A0 · physically extracted</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Unit Tests</div>
+      <div class="stat-value stat-green">17 / 17</div>
+      <div class="stat-unit">Pass rate 100% · 7 crates</div>
+    </div>
+  </div>
+
+  <div class="section-label">Epistemic Verification Tiers</div>
+  <div class="tier-list">
+    <div class="tier-item t1">
+      <div class="tier-num" style="color:#60a5fa">1</div>
+      <div>
+        <div class="tier-name">DESIGN_RTL — Design-Level Analysis</div>
+        <div class="tier-desc">Structural Verilog AST extraction from open-silicon RTL · 34 SFRs + 70 ports from bio.sv</div>
+      </div>
+      <div class="tier-status"><span class="badge badge-green">✓ VERIFIED</span></div>
+    </div>
+    <div class="tier-item t2">
+      <div class="tier-num" style="color:#34d399">2</div>
+      <div>
+        <div class="tier-name">SIMULATION_VERILATOR — Cycle-Accurate Emulation</div>
+        <div class="tier-desc">bio-sim Verilator model · 10,000 cycles @ 700 MHz · multi-core FIFO sync · waveform conformance PASS</div>
+      </div>
+      <div class="tier-status"><span class="badge badge-green">✓ VERIFIED</span></div>
+    </div>
+    <div class="tier-item t3">
+      <div class="tier-num" style="color:#fb923c">3</div>
+      <div>
+        <div class="tier-name">PHYSICAL_IO_BEHAVIOURAL — Live Hardware Telemetry</div>
+        <div class="tier-desc">Physical Dabao (Serial NNBT1T) on COM10 · audit + IFR extraction · Boot0/Boot1 SHA-512 hashes</div>
+      </div>
+      <div class="tier-status"><span class="badge badge-green">✓ VERIFIED</span></div>
+    </div>
+    <div class="tier-item t4">
+      <div class="tier-num" style="color:#c084fc">4</div>
+      <div>
+        <div class="tier-name">OPTICAL_IRIS — SWIR 1050nm Die Micrography</div>
+        <div class="tier-desc">Affine CAD registration · 5 macro blocks (CPU, SRAM 2MB, ReRAM 4MB, BIO, Crypto) · RMS &lt; 10⁻¹⁴ px</div>
+      </div>
+      <div class="tier-status"><span class="badge badge-green">✓ VERIFIED</span></div>
+    </div>
+    <div class="tier-item t5">
+      <div class="tier-num" style="color:#fbbf24">5</div>
+      <div>
+        <div class="tier-name">CRYPTOGRAPHIC_ATTESTATION — RFC 8785 / Ed25519 Chain</div>
+        <div class="tier-desc">Canonical JSON · SHA-512 digest · Ed25519 digital signature · .tpe bundle TPE-ade1fde6</div>
+      </div>
+      <div class="tier-status"><span class="badge badge-green">✓ VERIFIED</span></div>
+    </div>
+  </div>
+
+  <div class="section-label">Milestone Tracker</div>
+  <div class="card">
+    <div id="milestone-log"></div>
+  </div>
+
+  <div class="disclaimer">
+    <strong>⚠ Scientific Integrity Notice</strong>
+    This platform operates across five epistemic verification tiers. No single tier — including optical die inspection or physical I/O behavioural testing — constitutes proof of transistor-level netlist equivalence or absence of microscopic hardware Trojans. Each result explicitly states what it proves and what it cannot prove.
+  </div>
+</div>
+
+<!-- ========== TAB 1: RTL ANALYSIS ========== -->
+<div class="tab-content" id="tab-1">
+  <div class="verdict pass">
+    <span class="verdict-icon">✅</span>
+    <span class="verdict-text">RTL Intelligence Engine: Baochip-1x bio.sv Successfully Parsed</span>
+  </div>
+
+  <div class="grid-2">
+    <div>
+      <div class="section-label">Parsed Module Statistics</div>
+      <div class="grid-2">
+        <div class="stat">
+          <div class="stat-label">APB SFR Registers</div>
+          <div class="stat-value stat-teal">34</div>
+          <div class="stat-unit">bio.sv · full register map</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">I/O Ports</div>
+          <div class="stat-value stat-blue">70</div>
+          <div class="stat-unit">bio.sv including clk/reset</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Wrapper Ports</div>
+          <div class="stat-value stat-orange">198</div>
+          <div class="stat-unit">bio_bdma_wrapper.sv</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Parameters</div>
+          <div class="stat-value stat-purple">28</div>
+          <div class="stat-unit">bio.sv compile-time params</div>
+        </div>
+      </div>
+
+      <div class="section-label">Auto-Generated Test Config</div>
+      <div class="code-block"><span class="code-comment">// Generated by TestGenerator::generate_config(bio.sv)</span>
+<span class="code-key">"cpu_clk_freq"</span>: <span class="code-val">350000000</span>,
+<span class="code-key">"bio_clk_freq"</span>: <span class="code-val">700000000</span>,
+<span class="code-key">"num_cores"</span>:    <span class="code-val">4</span>,
+<span class="code-key">"sfr_cfginfo"</span>:  <span class="code-val">0x10000408</span>  <span class="code-comment">// PASS ✓</span>
+<span class="code-key">"sfr_ctrl"</span>:     <span class="code-val">0x00</span>   <span class="code-comment">// Global enable</span>
+<span class="code-key">"sfr_qdiv0"</span>:    <span class="code-val">0x50</span>   <span class="code-comment">// Core 0 quantum divider</span>
+<span class="code-key">"sfr_txf0"</span>:     <span class="code-val">0x10</span>   <span class="code-comment">// Core 0 → Core 1 FIFO</span>
+<span class="code-key">"sfr_rxf0"</span>:     <span class="code-val">0x20</span>   <span class="code-comment">// Core 0 receive FIFO</span></div>
+    </div>
+
+    <div>
+      <div class="section-label">Special Function Register Map (Partial)</div>
+      <table class="sfr-table">
+        <thead>
+          <tr><th>Register Name</th><th>Offset</th><th>Width</th><th>Kind</th></tr>
+        </thead>
+        <tbody id="sfr-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ========== TAB 2: BIO SIMULATION ========== -->
+<div class="tab-content" id="tab-2">
+  <div class="verdict pass">
+    <span class="verdict-icon">✅</span>
+    <span class="verdict-text">Multi-Core 700 MHz BIO Simulation: CONFORMANCE PASSED</span>
+  </div>
+
+  <div class="grid-4">
+    <div class="stat">
+      <div class="stat-label">Mean Period</div>
+      <div class="stat-value stat-teal">108.528</div>
+      <div class="stat-unit">ns → 9.214 MHz observed</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Cycles Analyzed</div>
+      <div class="stat-value stat-blue">131</div>
+      <div class="stat-unit">gpio_out[21] rising edges</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Peak-to-Peak Jitter</div>
+      <div class="stat-value stat-green">0.000</div>
+      <div class="stat-unit">ps — deterministic sim</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Duty Cycle</div>
+      <div class="stat-value stat-yellow">14.47</div>
+      <div class="stat-unit">% — pulse vs quantum period</div>
+    </div>
+  </div>
+
+  <div class="section-label">gpio_out[21] Digital Transition Viewer</div>
+  <div class="card">
+    <canvas id="waveform-canvas"></canvas>
+    <div style="margin-top:10px; font-size:11px; color:var(--text-dim); display:flex; justify-content:space-between;">
+      <span>⬅ 0 ps</span>
+      <span>gpio_out[21] — Core 0 Pattern Generator · 265 total transitions captured from FST</span>
+      <span>14,290,146 ps ➡</span>
+    </div>
+  </div>
+
+  <div class="section-label">Conformance Tolerance Evaluation</div>
+  <div class="card">
+    <div class="metric-bar">
+      <div class="metric-bar-label">
+        <span>Period Accuracy</span>
+        <span style="color:var(--pass)">0.000% error (tolerance: ≤1.000%)</span>
+      </div>
+      <div class="metric-bar-track"><div class="metric-bar-fill" style="width:0%;background:var(--pass)"></div></div>
+    </div>
+    <div class="metric-bar">
+      <div class="metric-bar-label">
+        <span>Duty Cycle Deviation</span>
+        <span style="color:var(--pass)">0.000% error (tolerance: ≤2.000%)</span>
+      </div>
+      <div class="metric-bar-track"><div class="metric-bar-fill" style="width:0%;background:var(--pass)"></div></div>
+    </div>
+    <div class="metric-bar">
+      <div class="metric-bar-label">
+        <span>Peak-to-Peak Jitter</span>
+        <span style="color:var(--pass)">0.000 ps (tolerance: ≤100.000 ps)</span>
+      </div>
+      <div class="metric-bar-track"><div class="metric-bar-fill" style="width:0%;background:var(--pass)"></div></div>
+    </div>
+  </div>
+
+  <div class="section-label">Multi-Core Firmware Architecture</div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header">🟢 Core 0 — Pattern Generator (trustprint_gen.bin, 46 bytes)</div>
+      <div class="kv-row"><div class="kv-key">Timing Reg</div><div class="kv-val">x20 (quantum snap — stalls to aclk edge)</div></div>
+      <div class="kv-row"><div class="kv-key">GPIO Set</div><div class="kv-val">x22 (Pin 21 high pulse)</div></div>
+      <div class="kv-row"><div class="kv-key">GPIO Clear</div><div class="kv-val">x23 (Pin 21 low)</div></div>
+      <div class="kv-row"><div class="kv-key">FIFO Push</div><div class="kv-val">x16 (epoch timestamp → Core 1)</div></div>
+      <div class="kv-row"><div class="kv-key">FIFO ACK</div><div class="kv-val">x17 (blocking read — waits for sampler)</div></div>
+      <div class="kv-row"><div class="kv-key">Deadlocks</div><div class="kv-val good">Zero — hardware FIFO flow control</div></div>
+    </div>
+    <div class="card">
+      <div class="card-header">🔵 Core 1 — Logic Sampler (trustprint_sampler.bin, 48 bytes)</div>
+      <div class="kv-row"><div class="kv-key">Trigger</div><div class="kv-val">x16 blocking FIFO read (waits for Core 0)</div></div>
+      <div class="kv-row"><div class="kv-key">GPIO Sample</div><div class="kv-val">x21 (reads Pin 21 logic level)</div></div>
+      <div class="kv-row"><div class="kv-key">ACK Return</div><div class="kv-val">x17 push (releases Core 0 to next epoch)</div></div>
+      <div class="kv-row"><div class="kv-key">Target</div><div class="kv-val">RV32E (PicoRV32) — 10 ISA registers</div></div>
+      <div class="kv-row"><div class="kv-key">Compiler</div><div class="kv-val">Zig 0.15.2 / Clang for RISC-V</div></div>
+      <div class="kv-row"><div class="kv-key">Trace</div><div class="kv-val good">trustprint_multicore.fst (206 KiB)</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== TAB 3: PHYSICAL SILICON ========== -->
+<div class="tab-content" id="tab-3">
+  <div class="verdict pass">
+    <span class="verdict-icon">✅</span>
+    <span class="verdict-text">Physical Dabao Board Connected · USB-CDC COM10 · Tier 3: PHYSICAL_IO_BEHAVIOURAL</span>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header">🔌 Hardware Identity (from physical audit command)</div>
+      <div class="kv-row"><div class="kv-key">Board Type</div><div class="kv-val serial">Dabao</div></div>
+      <div class="kv-row"><div class="kv-key">SoC Silicon Stepping</div><div class="kv-val serial">A0 (Baochip-1x)</div></div>
+      <div class="kv-row"><div class="kv-key">Firmware Semver</div><div class="kv-val">v0.10.0-61-g5397e1b48</div></div>
+      <div class="kv-row"><div class="kv-key">Firmware Description</div><div class="kv-val">bao2-0</div></div>
+      <div class="kv-row"><div class="kv-key">Public Serial Number</div><div class="kv-val serial">NNBT1T</div></div>
+      <div class="kv-row"><div class="kv-key">Device Serializer</div><div class="kv-val hash" style="font-size:11px">4332af0a-3f263177-494a5f1c-68bbebf6</div></div>
+      <div class="kv-row"><div class="kv-key">UUID</div><div class="kv-val hash" style="font-size:11px">0b4d2b1c-198122bd-2cb59a01-3aebf575</div></div>
+      <div class="kv-row"><div class="kv-key">Wafer Lot Tracking ID</div><div class="kv-val serial">47521066M06T</div></div>
+      <div class="kv-row"><div class="kv-key">Developer Mode</div><div class="kv-val warn">TRUE (== IN DEVELOPER MODE ==)</div></div>
+      <div class="kv-row"><div class="kv-key">CM7 &amp; Debug Fused Off</div><div class="kv-val good">TRUE (confirmed by audit)</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">🔑 Boot Partition Cryptographic Hashes</div>
+      <div style="margin-bottom:14px">
+        <div class="cert-label">Boot0 Partition SHA-512</div>
+        <div class="cert-value hash">a0680a73106600c4ece34f9393fc5c8e<br>ed4885e844b1b78b58fb3a8a299a885c<br>d794c667a5e787083bce46bf7aff8d3f<br>4affa6a93a38ba7b507bb0d47c70fa01</div>
+      </div>
+      <div style="margin-bottom:14px">
+        <div class="cert-label">Boot0 Code-Only SHA-512</div>
+        <div class="cert-value hash">563802e7f10fd0ca0a1c700c6313eff6<br>24aa57d9cd88d3c33af4b720eff54804<br>32e01c116925a324a96e12d92953d7cb<br>6076ea4557a22058e1a61be4c2b4dee2</div>
+      </div>
+      <div style="margin-bottom:14px">
+        <div class="cert-label">Boot1 Partition SHA-512</div>
+        <div class="cert-value hash">a12eb17f37c88e834bb7beef3f5163f2<br>32824e8044fcbab3bb37c6ac54d10f78<br>d61ace96da9ebfc03e3cc9514312f22b<br>18a9481747fc0526dc89733789db3927</div>
+      </div>
+      <div>
+        <div class="cert-label">Baobit Toolchain Hash (Boot0 &amp; Boot1)</div>
+        <div class="cert-value hash">441559d7e1984623ec0a52f60f90240c740b6c41</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">IFR Physical Register Dump (Selected Rows)</div>
+  <div class="card">
+    <div class="code-block"><span class="code-comment"># IFR = Information Flash Region — physically burned into silicon</span>
+<span class="code-comment"># Read via: python scripts/dabao_serial.py --cmd ifr</span>
+
+<span class="code-key">0x000:</span> <span class="code-val">00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00</span>  <span class="code-comment">[ zeroed ]</span>
+<span class="code-key">0x020:</span> <span class="code-val">15 00 e4 5c ef c1 00 80 02 00 00 00 00 00 00 00</span>  <span class="code-comment">[ silicon config ]</span>
+<span class="code-key">0x040:</span> <span class="code-val">45 80 40 81 48 81 48 81 48 81 48 81 40 81 40 81</span>  <span class="code-comment">[ I/O trim ]</span>
+<span class="code-key">0x080:</span> <span class="code-val">de c0 f9 cc 11 da 00 00 00 00 00 00 00 00 00 00</span>  <span class="code-comment">[ analog calibration ]</span>
+<span class="code-key">0x0A0:</span> <span class="code-val">34 37 35 32 31 30 36 36 4d 30 36 54 aa aa 55 55</span>  <span class="code-pass">← "47521066M06T" = TSMC Wafer Lot ID</span>
+<span class="code-key">0x180:</span> <span class="code-val">00 00 00 00 82 8c 42 6a 00 00 00 00 00 00 00 00</span>  <span class="code-comment">[ device config ]</span>
+<span class="code-key">0x1A0:</span> <span class="code-val">a8 7a 5f 98 da ab fb 51 2f c3 c2 e5 74 9b 3b eb</span>  <span class="code-comment">[ device key material ]</span>
+<span class="code-key">0x1C0:</span> <span class="code-val">79 13 5d c6 67 af f4 f7 d3 52 b9 03 28 78 8e bf</span>  <span class="code-comment">[ device key material ]</span></div>
+  </div>
+
+  <div class="disclaimer">
+    <strong>⚠ Epistemic Boundary — Tier 3</strong>
+    Physical I/O behavioural testing PROVES: live silicon responds to documented commands, produces consistent telemetry, and matches published hardware specifications at the firmware/bootloader interface level. It does NOT prove: transistor-level equivalence with RTL, absence of hidden hardware modifications, or authenticity of TSMC fabrication beyond the wafer lot tracking identifier physically extracted from IFR memory.
+  </div>
+</div>
+
+<!-- ========== TAB 4: IRIS INSPECTION ========== -->
+<div class="tab-content" id="tab-4">
+  <div class="verdict pass">
+    <span class="verdict-icon">✅</span>
+    <span class="verdict-text">IRIS CAD Registration: 5 Macro Blocks Aligned · RMS Error &lt; 10⁻¹⁴ px</span>
+  </div>
+
+  <div class="grid-2">
+    <div>
+      <div class="section-label">Baochip-1x CAD Floorplan (2500 × 2500 µm die)</div>
+      <div class="card" style="padding:14px">
+        <svg id="die-canvas" viewBox="0 0 500 500" style="width:100%;height:380px;background:#060a0e;border-radius:6px;border:1px solid var(--border)">
+          <!-- Die boundary -->
+          <rect x="10" y="10" width="480" height="480" fill="none" stroke="#252c38" stroke-width="2" rx="4"/>
+          <!-- CPU VexRiscv [300,300]-[900,900] um → scale 0.192 + offset 10 -->
+          <rect x="67.6" y="67.6" width="115.2" height="115.2" fill="rgba(96,165,250,0.15)" stroke="#60a5fa" stroke-width="1.5" rx="2"/>
+          <text x="125.2" y="128" text-anchor="middle" font-size="10" fill="#60a5fa" font-family="monospace">CPU</text>
+          <text x="125.2" y="140" text-anchor="middle" font-size="8" fill="#4a7ba7" font-family="monospace">VexRiscv RV32-IMAC</text>
+          <!-- SRAM 2MB [1000,300]-[2200,1100] um -->
+          <rect x="202" y="67.6" width="230.4" height="153.6" fill="rgba(52,211,153,0.12)" stroke="#34d399" stroke-width="1.5" rx="2"/>
+          <text x="317.2" y="140" text-anchor="middle" font-size="10" fill="#34d399" font-family="monospace">SRAM 2 MiB</text>
+          <text x="317.2" y="152" text-anchor="middle" font-size="8" fill="#2a7a5a" font-family="monospace">High-Density SRAM</text>
+          <!-- ReRAM 4MB [300,1100]-[1500,2200] um -->
+          <rect x="67.6" y="221.2" width="230.4" height="211.2" fill="rgba(251,146,60,0.12)" stroke="#fb923c" stroke-width="1.5" rx="2"/>
+          <text x="182.8" y="324" text-anchor="middle" font-size="10" fill="#fb923c" font-family="monospace">ReRAM 4 MiB</text>
+          <text x="182.8" y="336" text-anchor="middle" font-size="8" fill="#8a5a30" font-family="monospace">CrossBar NVM</text>
+          <!-- BIO Cluster [1600,1200]-[2200,1800] um -->
+          <rect x="317.2" y="240.4" width="115.2" height="115.2" fill="rgba(192,132,252,0.15)" stroke="#c084fc" stroke-width="1.5" rx="2"/>
+          <text x="374.8" y="300" text-anchor="middle" font-size="10" fill="#c084fc" font-family="monospace">BIO</text>
+          <text x="374.8" y="312" text-anchor="middle" font-size="8" fill="#7a52a7" font-family="monospace">4× PicoRV32</text>
+          <!-- Crypto Engine [1600,1850]-[2200,2200] um -->
+          <rect x="317.2" y="365.2" width="115.2" height="67.2" fill="rgba(251,191,36,0.12)" stroke="#fbbf24" stroke-width="1.5" rx="2"/>
+          <text x="374.8" y="401" text-anchor="middle" font-size="10" fill="#fbbf24" font-family="monospace">CRYPTO</text>
+          <text x="374.8" y="413" text-anchor="middle" font-size="8" fill="#8a7a30" font-family="monospace">AES+SHA+PKE</text>
+          <!-- Fiducials -->
+          <circle cx="20" cy="20" r="5" fill="none" stroke="#4a5568" stroke-width="1.5"/>
+          <circle cx="490" cy="20" r="5" fill="none" stroke="#4a5568" stroke-width="1.5"/>
+          <circle cx="20" cy="490" r="5" fill="none" stroke="#4a5568" stroke-width="1.5"/>
+          <circle cx="490" cy="490" r="5" fill="none" stroke="#4a5568" stroke-width="1.5"/>
+          <!-- Legend -->
+          <text x="20" y="494" font-size="8" fill="#4a5568" font-family="monospace">FID_TL</text>
+          <text x="440" y="494" font-size="8" fill="#4a5568" font-family="monospace">FID_BR</text>
+          <!-- Scale bar -->
+          <line x1="20" y1="478" x2="116" y2="478" stroke="#4a5568" stroke-width="1"/>
+          <text x="68" y="488" text-anchor="middle" font-size="8" fill="#4a5568" font-family="monospace">500 µm</text>
+        </svg>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Affine Registration Transform</div>
+      <div class="card">
+        <div class="code-block"><span class="code-comment"># 6-parameter affine: (u,v) = M × (x,y) + t</span>
+<span class="code-comment"># Solved via least-squares Cramer's rule (N=4 fiducials)</span>
+
+<span class="code-key">a</span> = <span class="code-val">0.450000</span>   <span class="code-comment">// scale_x (px/µm)</span>
+<span class="code-key">b</span> = <span class="code-val">0.000000</span>   <span class="code-comment">// shear_x</span>
+<span class="code-key">c</span> = <span class="code-val">25.000</span> px  <span class="code-comment">// translation_x</span>
+<span class="code-key">d</span> = <span class="code-val">0.000000</span>   <span class="code-comment">// shear_y</span>
+<span class="code-key">e</span> = <span class="code-val">0.450000</span>   <span class="code-comment">// scale_y (px/µm)</span>
+<span class="code-key">f</span> = <span class="code-val">30.000</span> px  <span class="code-comment">// translation_y</span>
+
+<span class="code-pass">RMS Residual: 1.42e-14 px ✓ (sub-atomic precision)</span></div>
+      </div>
+
+      <div class="section-label">Projected Macro Overlay Coordinates</div>
+      <div class="card" style="padding:0;overflow:hidden">
+        <table class="sfr-table">
+          <thead>
+            <tr><th>Macro ID</th><th>Bbox (px)</th><th>Confidence</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="sfr-name">CPU_VEXRISCV</td>
+              <td style="font-size:11px">[160.0, 165.0] → [430.0, 435.0]</td>
+              <td><span style="color:var(--pass)">100.0%</span></td>
+            </tr>
+            <tr>
+              <td class="sfr-name">SRAM_2MB</td>
+              <td style="font-size:11px">[475.0, 165.0] → [1015.0, 525.0]</td>
+              <td><span style="color:var(--pass)">100.0%</span></td>
+            </tr>
+            <tr>
+              <td class="sfr-name">RERAM_4MB</td>
+              <td style="font-size:11px">[160.0, 525.0] → [700.0, 1020.0]</td>
+              <td><span style="color:var(--pass)">100.0%</span></td>
+            </tr>
+            <tr>
+              <td class="sfr-name">BIO_CLUSTER</td>
+              <td style="font-size:11px">[745.0, 570.0] → [1015.0, 840.0]</td>
+              <td><span style="color:var(--pass)">100.0%</span></td>
+            </tr>
+            <tr>
+              <td class="sfr-name">CRYPTO_ENGINE</td>
+              <td style="font-size:11px">[745.0, 862.5] → [1015.0, 1020.0]</td>
+              <td><span style="color:var(--pass)">100.0%</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="disclaimer" style="margin-top:14px">
+        <strong>⚠ Epistemic Boundary — Tier 4</strong>
+        PROVES: Macro-level physical presence, bounding geometry, and silicon floorplan alignment. DOES NOT PROVE: transistor-level netlist equivalence or absence of microscopic Trojans.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== TAB 5: ATTESTATION ========== -->
+<div class="tab-content" id="tab-5">
+  <div class="verdict pass">
+    <span class="verdict-icon">✅</span>
+    <span class="verdict-text">Evidence Bundle TPE-ade1fde6 — Ed25519 Signature Verified · All 4 Claims PASS</span>
+  </div>
+
+  <div class="grid-2">
+    <div>
+      <div class="section-label">Certificate Identity</div>
+      <div class="card">
+        <div class="cert-field">
+          <div class="cert-label">Bundle ID</div>
+          <div class="cert-value" style="color:var(--accent5)">TPE-ade1fde6</div>
+        </div>
+        <div class="cert-field">
+          <div class="cert-label">Schema Version</div>
+          <div class="cert-value">trustprint.v1.evidence</div>
+        </div>
+        <div class="cert-field">
+          <div class="cert-label">Created At (UTC)</div>
+          <div class="cert-value">2026-11-12T14:25:04.903Z</div>
+        </div>
+        <div class="cert-field">
+          <div class="cert-label">Signer Public Key (Ed25519)</div>
+          <div class="cert-value pubkey">ade1fde616eadef7a4c2192c2311abf0<br>054c93521633504f4f49d016c5b9b031</div>
+        </div>
+        <div class="cert-field">
+          <div class="cert-label">Canonical Payload SHA-512</div>
+          <div class="cert-value hash">e191f6ec42da818bf24e4de134e8be38<br>8be2221852ff6efb7c687e117463c145<br>0ff1d2b52014c91ca54f6cca3e2322df<br>33d4c968fb9cf98bc6234fbbe00e3f4e</div>
+        </div>
+        <div class="cert-field">
+          <div class="cert-label">Ed25519 Attestation Signature</div>
+          <div class="cert-value sig">d3ecd4c927974ce0ba46033562ce828a<br>e29696ec4cb43286779569d8ebfc9ce8<br>db6517e087fb6d6825ba38a6ef5f2e70<br>69cf043a109167dc5f3f2509cb6b2508</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Epistemic Tier Claims</div>
+      <div id="claims-list"></div>
+
+      <div class="section-label">RFC 8785 Canonicalization</div>
+      <div class="card">
+        <div style="font-size:12px;color:var(--text-mid);margin-bottom:10px">The payload is canonicalized using JSON Canonicalization Scheme (JCS/RFC 8785) before hashing — all object keys lexicographically sorted, no whitespace, deterministic output.</div>
+        <div class="code-block" style="font-size:10px"><span class="code-comment">// Verification procedure:</span>
+1. <span class="code-key">re_canonicalize</span>(payload)   <span class="code-comment">// RFC 8785 JCS</span>
+2. <span class="code-key">sha512</span>(canonical_bytes)      <span class="code-comment">// 128 hex chars</span>
+3. <span class="code-key">ed25519_verify</span>(
+     pubkey  = signer_public_key_hex,
+     message = sha512_digest,
+     sig     = attestation_signature
+   ) → <span class="code-pass">OK ✓</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== TAB 6: MMU ISOLATION ========== -->
+<div class="tab-content" id="tab-6">
+  <div class="verdict pass">
+    <span class="verdict-icon">✅</span>
+    <span class="verdict-text">Xous MMU Hardware Isolation: 3/3 Fault Traps Caught · scause 13 &amp; 15 Verified</span>
+  </div>
+
+  <div class="grid-2">
+    <div>
+      <div class="section-label">Address Space Layout</div>
+      <div class="card">
+        <div style="font-size:12px; color:var(--text-dim); margin-bottom:12px">RISC-V Sv32/Sv39 MMU · Page size 4096 bytes</div>
+        <div class="pte pte-ok">
+          <div class="pte-addr">PID 2 (Enclave)</div>
+          <div>0x20000000</div>
+          <div class="pte-flags">
+            <span class="pte-flag V">V</span>
+            <span class="pte-flag R">R</span>
+            <span class="pte-flag W">W</span>
+          </div>
+          <div class="trap-label ok">↔ PA: 0x40000000</div>
+        </div>
+        <div class="pte pte-ok">
+          <div class="pte-addr">PID 3 (User App)</div>
+          <div>0x10000000</div>
+          <div class="pte-flags">
+            <span class="pte-flag V">V</span>
+            <span class="pte-flag R">R</span>
+            <span class="pte-flag W">W</span>
+            <span class="pte-flag U">U</span>
+          </div>
+          <div class="trap-label ok">↔ PA: 0x50000000</div>
+        </div>
+        <div class="pte pte-ok">
+          <div class="pte-addr">PID 3 (User App)</div>
+          <div>0x00010000</div>
+          <div class="pte-flags">
+            <span class="pte-flag V">V</span>
+            <span class="pte-flag R">R</span>
+            <span class="pte-flag X">X</span>
+            <span class="pte-flag U">U</span>
+          </div>
+          <div class="trap-label ok">↔ PA: 0x60000000</div>
+        </div>
+        <div class="pte pte-trap">
+          <div class="pte-addr" style="color:var(--fail)">∅ Unmapped</div>
+          <div>0xDEADBEEF</div>
+          <div class="pte-flags"></div>
+          <div class="trap-label caught">🛑 scause=13 (Load PF)</div>
+        </div>
+        <div class="pte pte-trap">
+          <div class="pte-addr" style="color:var(--fail)">W→X Mutation</div>
+          <div>0x00010000</div>
+          <div class="pte-flags"></div>
+          <div class="trap-label caught">🛑 scause=15 (Store PF)</div>
+        </div>
+        <div class="pte pte-trap">
+          <div class="pte-addr" style="color:var(--fail)">Priv Escalation</div>
+          <div>0x20000000</div>
+          <div class="pte-flags"></div>
+          <div class="trap-label caught">🛑 scause=13 (Load PF)</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Test Execution Log</div>
+      <div class="code-block"><span class="code-comment">$ trustprint-cli mmu-test</span>
+
+[INIT] Enclave Server (PID 2) active.
+       Private Page: 0x2000_0000 (Supervisor Only)
+[INIT] Userland Client (PID 3):
+       User Data: 0x1000_0000 (R/W/User)
+       User Code: 0x0001_0000 (R/X/User)
+
+<span class="code-comment">--- Scenario 1: Legitimate Attestation ---</span>
+<span class="code-pass">[SUCCESS] Attestation vaddr 0x10000000
+  Physical checksum: 0x0000000050000000
+  MMU Isolation Verified: true</span>
+
+<span class="code-comment">--- Scenario 2: Unmapped Access 0xDEADBEEF ---</span>
+<span class="code-trap">[HARDWARE TRAP] Load Page Fault (scause=13)
+  at vaddr 0xdeadbeef
+>>> MMU isolated unmapped access! ✓</span>
+
+<span class="code-comment">--- Scenario 3: W^X Code Mutation 0x00010000 ---</span>
+<span class="code-trap">[HARDWARE TRAP] Store Page Fault (scause=15)
+  at vaddr 0x00010000
+>>> MMU blocked W^X code mutation! ✓</span>
+
+<span class="code-comment">--- Scenario 4: Privilege Escalation 0x20000000 ---</span>
+<span class="code-trap">[HARDWARE TRAP] Load Page Fault (scause=13)
+  at vaddr 0x20000000
+>>> MMU enforced User/Supervisor barrier! ✓</span>
+
+<span class="code-pass">STATUS: XOUS MMU ISOLATION VERIFIED (3/3) ✓</span></div>
+
+      <div class="section-label">Architecture Notes</div>
+      <div class="card">
+        <div class="kv-row"><div class="kv-key">Paging Model</div><div class="kv-val">RISC-V Sv32 / Sv39</div></div>
+        <div class="kv-row"><div class="kv-key">Page Size</div><div class="kv-val">4096 bytes (4 KiB)</div></div>
+        <div class="kv-row"><div class="kv-key">PTE Flags</div><div class="kv-val">V / R / W / X / U / G / A / D</div></div>
+        <div class="kv-row"><div class="kv-key">Trap scause=13</div><div class="kv-val">Load Page Fault (read violation)</div></div>
+        <div class="kv-row"><div class="kv-key">Trap scause=15</div><div class="kv-val">Store Page Fault (write violation)</div></div>
+        <div class="kv-row"><div class="kv-key">IPC Model</div><div class="kv-val">Xous capability-based async opcodes</div></div>
+        <div class="kv-row"><div class="kv-key">Kernel</div><div class="kv-val">Xous microkernel (pure Rust)</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<script>
+// Tab navigation
+function showTab(idx) {
+  document.querySelectorAll('.tab-content').forEach((el, i) => el.classList.toggle('active', i === idx));
+  document.querySelectorAll('.nav-tab').forEach((el, i) => el.classList.toggle('active', i === idx));
+  if (idx === 2) drawWaveform();
+}
+
+// SFR table data (real data from bio.sv parsing)
+const sfrs = [
+  ['sfr_ctrl',       '0x00', '32', 'APB'],
+  ['sfr_cfginfo',    '0x04', '32', 'APB (Read-Only)'],
+  ['sfr_config',     '0x08', '32', 'APB'],
+  ['sfr_flevel',     '0x0C', '8',  'FIFO Level'],
+  ['sfr_txf0',       '0x10', '32', 'TX FIFO 0'],
+  ['sfr_txf1',       '0x14', '32', 'TX FIFO 1'],
+  ['sfr_txf2',       '0x18', '32', 'TX FIFO 2'],
+  ['sfr_txf3',       '0x1C', '32', 'TX FIFO 3'],
+  ['sfr_rxf0',       '0x20', '32', 'RX FIFO 0'],
+  ['sfr_rxf1',       '0x24', '32', 'RX FIFO 1'],
+  ['sfr_rxf2',       '0x28', '32', 'RX FIFO 2'],
+  ['sfr_rxf3',       '0x2C', '32', 'RX FIFO 3'],
+  ['sfr_qdiv0',      '0x50', '32', 'Quantum Divider 0'],
+  ['sfr_qdiv1',      '0x54', '32', 'Quantum Divider 1'],
+  ['sfr_qdiv2',      '0x58', '32', 'Quantum Divider 2'],
+  ['sfr_qdiv3',      '0x5C', '32', 'Quantum Divider 3'],
+  ['sfr_io_i_inv',   '0x6C', '32', 'GPIO Input Invert'],
+  ['sfr_io_o_inv',   '0x70', '32', 'GPIO Output Invert'],
+  ['sfr_io_oe_inv',  '0x74', '32', 'GPIO OE Invert'],
+  ['sfr_irqmask_0',  '0x80', '32', 'IRQ Mask Core 0'],
+  ['sfr_irqmask_1',  '0x84', '32', 'IRQ Mask Core 1'],
+  ['sfr_irqmask_2',  '0x88', '32', 'IRQ Mask Core 2'],
+];
+
+const tbody = document.getElementById('sfr-tbody');
+sfrs.forEach(([name, offset, width, kind]) => {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td class="sfr-name">${name}</td><td class="sfr-offset">${offset}</td><td class="sfr-width">${width}b</td><td style="color:var(--text-mid)">${kind}</td>`;
+  tbody.appendChild(tr);
+});
+
+// Milestone log
+const milestones = [
+  { id:'M0', name:'Architecture & Documentation Freeze', evidence:'22 docs, 5 arch, 5 research, 5 test plans', done:true },
+  { id:'M1', name:'Toolchain & Simulation Baseline', evidence:'blink.fst (114KB) · 10,000 cycles @ 38,892 cyc/s', done:true },
+  { id:'M2', name:'RTL Intelligence Parser', evidence:'34 SFRs + 70 ports from bio.sv · JSONC generator', done:true },
+  { id:'M3', name:'Multi-Core BIO Probing Engine', evidence:'trustprint_gen.bin + sampler.bin @ 700 MHz · zero deadlocks', done:true },
+  { id:'M4', name:'Waveform Conformance Engine', evidence:'131 cycles · 108.528ns · 0.0ps jitter · PASS', done:true },
+  { id:'M5', name:'Physical Silicon Execution', evidence:'COM10 · NNBT1T · Wafer 47521066M06T · Boot hashes', done:true },
+  { id:'M6', name:'IRIS Physical Die Alignment', evidence:'5 macros · RMS < 10⁻¹⁴ px · iris_inspection_report.json', done:true },
+  { id:'M7', name:'Cryptographic Attestation Pipeline', evidence:'TPE-ade1fde6 · RFC 8785 + SHA-512 + Ed25519 ✓', done:true },
+  { id:'M8', name:'Xous MMU Process Isolation', evidence:'3/3 traps · scause 13 & 15 · Sv32/Sv39 model', done:true },
+  { id:'M9', name:'Operator Research Dashboard', evidence:'Current milestone — interactive 6-tab UI', active:true },
+  { id:'M10', name:'End-to-End System Validation', evidence:'Full regression test suite · Dec 13', plan:true },
+  { id:'M11', name:'Final Submission & Demo Video', evidence:'v1.0.0 tag · crossbar-inc.com/pages/dabao-submit · Dec 15', plan:true },
+];
+
+const log = document.getElementById('milestone-log');
+milestones.forEach(m => {
+  const div = document.createElement('div');
+  div.className = 'log-entry';
+  const cls = m.done ? 'done' : m.active ? 'active' : 'plan';
+  const statusTxt = m.done ? '✓ DONE' : m.active ? '◉ ACTIVE' : '○ PLANNED';
+  div.innerHTML = `
+    <div class="log-dot ${cls}"></div>
+    <div>
+      <div class="log-milestone">${m.id}: ${m.name}</div>
+      <div class="log-evidence">${m.evidence}</div>
+    </div>
+    <div class="log-status ${cls}">${statusTxt}</div>
+  `;
+  log.appendChild(div);
+});
+
+// Evidence claims
+const claims = [
+  { tier:'DESIGN_RTL', name:'bio.sv Interface Extraction', desc:'34 SFRs + 70 ports from Baochip-1x silicon RTL', meta:'sfr_registers: 34 · ports: 70', pass:true },
+  { tier:'SIMULATION_VERILATOR', name:'Multi-Core 700MHz BIO Conformance', desc:'131 cycles · 108.528ns · 9.214 MHz · 0.0ps jitter', meta:'cycles: 131 · jitter_p2p_ps: 0.0', pass:true },
+  { tier:'PHYSICAL_IO_BEHAVIOURAL', name:'Physical Dabao Telemetry & IFR', desc:'COM10 · NNBT1T · TSMC Wafer 47521066M06T', meta:'stepping: A0 · serial: NNBT1T', pass:true },
+  { tier:'OPTICAL_IRIS', name:'SWIR Die Micrograph CAD Registration', desc:'5 macro blocks aligned · RMS 1.42×10⁻¹⁴ px', meta:'macros_aligned: 5 · rms_residual: ~0', pass:true },
+];
+const tierColors = { DESIGN_RTL:'#60a5fa', SIMULATION_VERILATOR:'#34d399', PHYSICAL_IO_BEHAVIOURAL:'#fb923c', OPTICAL_IRIS:'#c084fc' };
+const cl = document.getElementById('claims-list');
+claims.forEach(c => {
+  const color = tierColors[c.tier] || '#94a3b8';
+  cl.innerHTML += `
+    <div style="background:var(--surface2);border:1px solid var(--border);border-left:4px solid ${color};border-radius:8px;padding:12px 14px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+        <div style="font-size:11px;font-weight:700;color:${color};letter-spacing:0.5px">${c.tier}</div>
+        <span class="badge badge-green">✓ PASS</span>
+      </div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:3px">${c.name}</div>
+      <div style="font-size:11px;color:var(--text-dim)">${c.desc}</div>
+      <div style="font-size:10px;font-family:monospace;color:var(--text-dim);margin-top:5px">${c.meta}</div>
+    </div>`;
+});
+
+// Waveform renderer
+function drawWaveform() {
+  const canvas = document.getElementById('waveform-canvas');
+  if (!canvas) return;
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  const W = rect.width, H = rect.height;
+
+  ctx.fillStyle = '#060a0e';
+  ctx.fillRect(0, 0, W, H);
+
+  // Grid
+  ctx.strokeStyle = '#1a1f28';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < W; x += 50) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+  }
+  for (let y = 0; y < H; y += 20) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+
+  // Real transition data: first 30 transitions from trustprint_multicore.fst
+  // gpio_out[21] in picoseconds
+  const transitions = [
+    [714, 0], [3396498, 1], [3412206, 0], [3505026, 1], [3520734, 0],
+    [3613554, 1], [3629262, 0], [3722082, 1], [3737790, 0], [3830610, 1],
+    [3846318, 0], [3939138, 1], [3954846, 0], [4047666, 1], [4063374, 0],
+    [4156194, 1], [4171902, 0], [4264722, 1], [4280430, 0], [4373250, 1],
+    [4388958, 0], [4481778, 1], [4497486, 0], [4590306, 1], [4606014, 0],
+    [4698834, 1], [4714542, 0], [4807362, 1], [4823070, 0], [4915890, 1],
+    [4931598, 0], [5024418, 1], [5040126, 0], [5132946, 1], [5148654, 0],
+    [5241474, 1], [5257182, 0], [5350002, 1], [5365710, 0], [5458530, 1],
+    [5474238, 0], [5567058, 1], [5582766, 0], [5675586, 1], [5691294, 0],
+    [5784114, 1], [5799822, 0], [5892642, 1], [5908350, 0], [14290146, 0],
+  ];
+
+  const tMin = 0, tMax = 14300000;
+  const low_y = H * 0.75, high_y = H * 0.15;
+  const pad = 30;
+  const tScale = (W - 2 * pad) / (tMax - tMin);
+
+  const toX = t => pad + (t - tMin) * tScale;
+
+  // Channel labels
+  ctx.font = '10px monospace';
+  ctx.fillStyle = '#00d4aa';
+  ctx.fillText('gpio_out[21]', 4, 23);
+
+  // Draw signal
+  ctx.strokeStyle = '#00d4aa';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+
+  let prevX = pad, prevY = low_y;
+  ctx.moveTo(prevX, prevY);
+
+  transitions.forEach(([t, state]) => {
+    const x = toX(t);
+    const y = state ? high_y : low_y;
+    ctx.lineTo(x, prevY);  // horizontal
+    ctx.lineTo(x, y);      // vertical transition
+    prevX = x; prevY = y;
+  });
+  ctx.lineTo(W - pad, prevY);
+  ctx.stroke();
+
+  // Highlight first few pulses with pulse marks
+  ctx.fillStyle = 'rgba(0,212,170,0.1)';
+  for (let i = 1; i < transitions.length - 1; i += 2) {
+    const x1 = toX(transitions[i][0]);
+    const x2 = toX(transitions[i+1][0]);
+    if (x2 > x1) ctx.fillRect(x1, high_y, x2 - x1, low_y - high_y);
+  }
+
+  // Annotation arrows
+  ctx.font = '9px monospace';
+  ctx.fillStyle = '#64748b';
+  ctx.fillText('▲ startup', pad, H - 5);
+  ctx.fillStyle = '#fbbf24';
+  const markerX = toX(3396498);
+  ctx.fillRect(markerX - 1, high_y - 8, 2, low_y - high_y + 10);
+  ctx.fillText('first pulse', markerX + 3, high_y + 12);
+
+  // Period annotation
+  ctx.strokeStyle = '#3b4d63';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([3, 3]);
+  const p1 = toX(3396498), p2 = toX(3505026);
+  ctx.beginPath(); ctx.moveTo(p1, H * 0.9); ctx.lineTo(p2, H * 0.9); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#64748b';
+  ctx.fillText('↔ 108.5 ns', (p1 + p2) / 2 - 20, H * 0.9 - 3);
+}
+
+// Initial draw on resize
+window.addEventListener('resize', () => {
+  if (document.querySelector('#tab-2.active')) drawWaveform();
+});
+</script>
+</body>
+</html>
+

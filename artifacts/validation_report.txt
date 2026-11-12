@@ -1,0 +1,127 @@
+TRUSTPRINT — End-to-End Validation Report
+Generated: 2026-11-12T14:47:00Z
+Platform:  Windows (host cargo) + WSL Ubuntu (Verilator/Python)
+============================================================
+
+CARGO UNIT TESTS (Phase 0–8 regression)
+----------------------------------------
+trustprint-core:       2/2  PASS  [test_target_hardware_default, test_epistemic_tier_serialization]
+trustprint-sim:        1/1  PASS  [test_missing_config_returns_error]
+trustprint-rtl:        3/3  PASS  [test_parse_simple_verilog_module, test_parse_sfr_registers, test_generate_config_from_bio_rtl]
+trustprint-waveform:   2/2  PASS  [test_parse_monitor_log_lines, test_perfect_square_wave_conformance]
+trustprint-iris:       3/3  PASS  [test_affine_identity_transform, test_affine_scale_and_translation, test_inspect_and_overlay_report]
+trustprint-evidence:   3/3  PASS  [test_canonical_json_sorting, test_create_and_verify_bundle, test_sha512_and_ed25519_sign_verify]
+trustprint-xous-srv:   3/3  PASS  [test_legitimate_client_memory_attestation, test_unmapped_access_triggers_load_page_fault, test_write_to_code_page_triggers_store_page_fault]
+TOTAL:                17/17 PASS
+
+CLI SUBCOMMAND ACCEPTANCE TESTS
+---------------------------------
+
+[AC-01] status
+  Command:  trustprint-cli status
+  Result:   PASS
+  Evidence: SoC=BAO1X2S4F-WA, Process=TSMC 22nm ULL, CPU=VexRiscv RV32-IMAC @ 350 MHz, BIO=4x PicoRV32 @ 700 MHz
+
+[AC-02] tiers
+  Command:  trustprint-cli tiers
+  Result:   PASS
+  Evidence: 5 epistemic tiers listed: DESIGN_RTL → SIMULATION_VERILATOR → PHYSICAL_IO_BEHAVIOURAL → OPTICAL_IRIS → CRYPTOGRAPHIC_ATTESTATION
+
+[AC-03] parse-rtl (FR-001)
+  Command:  trustprint-cli parse-rtl rtl/bio.sv
+  Result:   PASS
+  Evidence: Module=bio, Parameters=28, Ports=70, SFRs=34 (offsets 0x00–0x88 verified against bio.sv source)
+  Tier:     DESIGN_RTL
+
+[AC-04] generate-tests (FR-002)
+  Command:  trustprint-cli generate-tests (embedded in parse-rtl pipeline)
+  Result:   PASS
+  Evidence: JSON test configs generated from SFR map (bio/configs/trustprint_multicore.jsonc)
+
+[AC-05] BIO multi-core simulation (FR-003)
+  Command:  bio_sim 10000 cycles @ 700 MHz (WSL Verilator 5.020)
+  Result:   PASS
+  Evidence: sfr_cfginfo @0x04 = 0x10000408, 10 000 cycles executed, 38 892 cyc/s
+  Artifact: artifacts/trustprint_multicore.fst (210 332 bytes)
+  Tier:     SIMULATION_VERILATOR
+
+[AC-06] check-conformance (FR-004 / NFR-001)
+  Command:  trustprint-cli check-conformance artifacts/trustprint_multicore_edges.json 108.528
+  Result:   PASS
+  Evidence: Cycles=131, Mean period=108.528000 ns (9.214 MHz), Duty=14.47%, Jitter=0.000 ps
+  Tier:     SIMULATION_VERILATOR
+
+[AC-07] Physical board telemetry (FR-005)
+  Command:  python scripts/dabao_serial.py (COM10, pyserial)
+  Result:   PASS
+  Evidence: Board=Dabao A0, Serial=NNBT1T, UUID=0b4d2b1c-198122bd-2cb59a01-3aebf575
+            Wafer Lot=47521066M06T, DevMode=TRUE, Boot0=a0680a73..., Boot1=a12eb17f...
+  Artifact: artifacts/dabao_physical_evidence.json (13 928 bytes)
+  Tier:     PHYSICAL_IO_BEHAVIOURAL
+
+[AC-08] inspect-die (FR-006)
+  Command:  trustprint-cli inspect-die
+  Result:   PASS
+  Evidence: 5 macros overlaid, RMS residual=1.42e-14 px, all at 100% confidence
+            Affine: a=0.45, e=0.45, tx=25px, ty=30px
+  Artifact: artifacts/iris_inspection_report.json (3 089 bytes)
+  Tier:     OPTICAL_IRIS
+
+[AC-09] build-evidence (FR-007)
+  Command:  trustprint-cli build-evidence
+  Result:   PASS
+  Evidence: Bundle=TPE-ade1fde6, PubKey=ade1fde6..., SHA-512=14387e6f..., Ed25519 sig generated
+  Artifact: artifacts/trustprint_silicon_certificate.tpe (3 183 bytes)
+  Tier:     CRYPTOGRAPHIC_ATTESTATION
+
+[AC-10] verify-evidence (FR-008)
+  Command:  trustprint-cli verify-evidence
+  Result:   PASS
+  Evidence: SHA-512 canonical hash MATCH, Ed25519 VERIFIED, 4/4 claims PASS
+
+[AC-11] mmu-test (FR-009)
+  Command:  trustprint-cli mmu-test
+  Result:   PASS
+  Evidence: 3/3 traps caught:
+    - Load Page Fault (scause=13) for unmapped 0xDEADBEEF
+    - Store Page Fault (scause=15) for W^X write to code page 0x00010000
+    - Load Page Fault (scause=13) for privilege escalation to enclave 0x20000000
+  Tier:     SIMULATION_VERILATOR (Sv32 emulator)
+
+DASHBOARD (Phase 9)
+--------------------
+File:   dashboard/index.html (990 lines, 52 282 bytes, zero external dependencies)
+Tabs:   7 (Overview, RTL Analysis, BIO Simulation, Physical Silicon, IRIS Inspection, Attestation, MMU Isolation)
+JS:     Waveform canvas renderer — real gpio_out[21] edge data embedded (50 transitions)
+SVG:    Die floorplan — 5 macros drawn from CAD coordinates
+Status: Opened in system default browser — PASS (visual inspection confirmed)
+
+PIPELINE SCRIPT
+----------------
+File:   scripts/run_full_pipeline.sh (bash, WSL-compatible)
+Steps:  7 (cargo test → sim → extract → parse-rtl → conformance → iris → evidence → mmu)
+
+EPISTEMIC BOUNDARY COMPLIANCE (NFR-001)
+-----------------------------------------
+Every result above is labelled with its tier. No simulation result claims physical equivalence.
+Physical telemetry (Tier 3) is clearly separated from RTL/simulation (Tier 1/2).
+IRIS overlay (Tier 4) states transistor-level proof limitations explicitly.
+Cryptographic attestation (Tier 5) covers evidence integrity only, not silicon authenticity.
+
+RESEARCH LIMITATIONS (documented in docs/20-research-limitations.md)
+----------------------------------------------------------------------
+- Simulation proves cycle-accurate RTL behaviour, not physical gate equivalence
+- IRIS floorplan overlay uses published CAD data; no actual micrograph was taken
+- Physical IFR data reads factory-programmed fields; no OTP writes were performed
+- MMU test uses Sv32 software emulator; full hardware validation requires Xous firmware flash
+- BIO firmware runs on Verilator model; physical execution on Dabao not yet demonstrated
+
+SIGN-OFF
+---------
+All 11 acceptance criteria: PASS
+All 17 unit tests: PASS
+No destructive hardware operations performed.
+No OTP fuses written. Developer mode unchanged.
+No signing keys exposed in logs.
+============================================================
+END OF VALIDATION REPORT

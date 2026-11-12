@@ -1,0 +1,18 @@
+[package]
+name = "trustprint-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+trustprint-core = { path = "../trustprint-core" }
+trustprint-sim = { path = "../trustprint-sim" }
+trustprint-rtl = { path = "../trustprint-rtl" }
+trustprint-waveform = { path = "../trustprint-waveform" }
+trustprint-iris = { path = "../trustprint-iris" }
+trustprint-evidence = { path = "../trustprint-evidence" }
+trustprint-xous-srv = { path = "../trustprint-xous-srv" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+

@@ -1,0 +1,13 @@
+{
+  "fclk_mhz": 700,
+  "trace": { "file": "trustprint_multicore.fst" },
+  "commands": [
+    { "cmd": "poke", "name": "sfr_config", "value": "0x000" },
+    { "cmd": "poke", "name": "sfr_qdiv0",  "value": "0x00010000" },
+    { "cmd": "load", "core": 0, "bin": "sw/trustprint_gen/trustprint_gen.bin" },
+    { "cmd": "load", "core": 1, "bin": "sw/trustprint_sampler/trustprint_sampler.bin" },
+    { "cmd": "start", "cores": [0, 1], "restart": true, "clkdiv_restart": true },
+    { "cmd": "run", "cycles": 10000, "stop_on_trap": false }
+  ]
+}
+

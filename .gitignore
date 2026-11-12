@@ -1,0 +1,58 @@
+# Rust / Cargo
+target/
+**/*.rs.bk
+Cargo.lock
+
+# Xous Build Artifacts
+build/
+*.uf2
+loader.bin
+xous.bin
+apps.bin
+
+# Verilator / BIO-sim Simulation
+obj_dir/
+*.fst
+*.vcd
+waveform/*.fst
+waveform/*.vcd
+
+# Python Tooling
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+env/
+dist/
+build/
+*.egg-info/
+
+# Node / React Dashboard
+node_modules/
+.npm/
+dashboard/dist/
+dashboard/.next/
+dashboard/build/
+
+# IDE / System
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Secrets & Local Config
+.env
+.env.local
+*.pem
+*.key
+*.sig.raw
+private_keys/
+

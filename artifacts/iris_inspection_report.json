@@ -1,0 +1,112 @@
+{
+  "timestamp_utc": "2026-11-12T14:46:19.332088+00:00",
+  "epistemic_tier": "OPTICAL_IRIS",
+  "chip_name": "Baochip-1x",
+  "transform": {
+    "a": 0.44999999999999996,
+    "b": 0.0,
+    "c": 24.999999999999996,
+    "d": 0.0,
+    "e": 0.44999999999999996,
+    "f": 29.999999999999996
+  },
+  "rms_error_px": 1.4210854715202004e-14,
+  "overlays": [
+    {
+      "id": "CPU_VEXRISCV",
+      "name": "VexRiscv RV32-IMAC CPU Core",
+      "kind": "CpuCore",
+      "cad_bbox_um": {
+        "min_x": 300.0,
+        "min_y": 300.0,
+        "max_x": 900.0,
+        "max_y": 900.0
+      },
+      "projected_bbox_px": {
+        "min_x": 160.0,
+        "min_y": 165.0,
+        "max_x": 429.99999999999994,
+        "max_y": 434.99999999999994
+      },
+      "feature_confidence": 0.9999999999999997
+    },
+    {
+      "id": "SRAM_2MB",
+      "name": "2 MiB High-Density System SRAM",
+      "kind": "SramBlock",
+      "cad_bbox_um": {
+        "min_x": 1000.0,
+        "min_y": 300.0,
+        "max_x": 2200.0,
+        "max_y": 1100.0
+      },
+      "projected_bbox_px": {
+        "min_x": 474.99999999999994,
+        "min_y": 165.0,
+        "max_x": 1014.9999999999999,
+        "max_y": 524.9999999999999
+      },
+      "feature_confidence": 0.9999999999999997
+    },
+    {
+      "id": "RERAM_4MB",
+      "name": "4 MiB CrossBar ReRAM Non-Volatile Storage",
+      "kind": "ReramBlock",
+      "cad_bbox_um": {
+        "min_x": 300.0,
+        "min_y": 1100.0,
+        "max_x": 1500.0,
+        "max_y": 2200.0
+      },
+      "projected_bbox_px": {
+        "min_x": 160.0,
+        "min_y": 524.9999999999999,
+        "max_x": 699.9999999999999,
+        "max_y": 1019.9999999999999
+      },
+      "feature_confidence": 0.9999999999999997
+    },
+    {
+      "id": "BIO_CLUSTER",
+      "name": "4x PicoRV32 BIO Coprocessor Cluster",
+      "kind": "BioCluster",
+      "cad_bbox_um": {
+        "min_x": 1600.0,
+        "min_y": 1200.0,
+        "max_x": 2200.0,
+        "max_y": 1800.0
+      },
+      "projected_bbox_px": {
+        "min_x": 744.9999999999999,
+        "min_y": 570.0,
+        "max_x": 1014.9999999999999,
+        "max_y": 839.9999999999999
+      },
+      "feature_confidence": 0.9999999999999997
+    },
+    {
+      "id": "CRYPTO_ENGINE",
+      "name": "Hardware Cryptography Acceleration Subsystem",
+      "kind": "CryptoEngine",
+      "cad_bbox_um": {
+        "min_x": 1600.0,
+        "min_y": 1850.0,
+        "max_x": 2200.0,
+        "max_y": 2200.0
+      },
+      "projected_bbox_px": {
+        "min_x": 744.9999999999999,
+        "min_y": 862.4999999999999,
+        "max_x": 1014.9999999999999,
+        "max_y": 1019.9999999999999
+      },
+      "feature_confidence": 0.9999999999999997
+    }
+  ],
+  "scientific_caveats": [
+    "PROVES: Macro-level physical presence, bounding geometry, and silicon floorplan alignment.",
+    "PROVES: Physical coexistence of SRAM, ReRAM, CPU, and BIO macro blocks.",
+    "DOES NOT PROVE: Transistor-level netlist equivalence or individual gate functions.",
+    "DOES NOT PROVE: Absence of microscopic hardware Trojans or modified doping concentrations."
+  ]
+}

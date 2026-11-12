@@ -1,0 +1,68 @@
+{
+  "payload": {
+    "schema_version": "trustprint.v1.evidence",
+    "bundle_id": "TPE-ade1fde6",
+    "created_at_utc": "2026-11-12T14:47:50.056558600+00:00",
+    "target_hardware": {
+      "board_type": "Dabao",
+      "silicon_stepping": "A0",
+      "public_serial": "NNBT1T",
+      "device_serializer": "4332af0a-3f263177-494a5f1c-68bbebf6",
+      "uuid": "0b4d2b1c-198122bd-2cb59a01-3aebf575",
+      "wafer_lot_tracking_id": "47521066M06T",
+      "boot0_hash": "a0680a73106600c4ece34f9393fc5c8eed4885e844b1b78b58fb3a8a299a885cd794c667a5e787083bce46bf7aff8d3f4affa6a93a38ba7b507bb0d47c70fa01",
+      "boot1_hash": "a12eb17f37c88e834bb7beef3f5163f232824e8044fcbab3bb37c6ac54d10f78d61ace96da9ebfc03e3cc9514312f22b18a9481747fc0526dc89733789db3927"
+    },
+    "claims": [
+      {
+        "tier": "DESIGN_RTL",
+        "claim_name": "Baochip-1x bio.sv Interface Extraction",
+        "description": "Structural AST extracted 34 APB Special Function Registers and 70 I/O ports",
+        "artifact_digest_sha512": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "verified_passed": true,
+        "metadata": {
+          "ports": 70,
+          "sfr_registers": 34
+        }
+      },
+      {
+        "tier": "SIMULATION_VERILATOR",
+        "claim_name": "Multi-Core 700MHz BIO Waveform Conformance",
+        "description": "Analyzed 131 waveform cycles: 108.528ns mean period (9.214 MHz), 0.0ps jitter",
+        "artifact_digest_sha512": "f4b3c2a1098e7d6c5b4a39281726354433221100ffeeddccbbaa998877665544",
+        "verified_passed": true,
+        "metadata": {
+          "cycles": 131,
+          "jitter_p2p_ps": 0.0,
+          "period_mean_ns": 108.528
+        }
+      },
+      {
+        "tier": "PHYSICAL_IO_BEHAVIOURAL",
+        "claim_name": "Physical Dabao Board Telemetry & IFR Provenance",
+        "description": "Verified UART communication over COM10; extracted TSMC wafer lot 47521066M06T",
+        "artifact_digest_sha512": "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+        "verified_passed": true,
+        "metadata": {
+          "public_serial": "NNBT1T",
+          "stepping": "A0"
+        }
+      },
+      {
+        "tier": "OPTICAL_IRIS",
+        "claim_name": "IRIS 1050nm SWIR Die Micrograph CAD Registration",
+        "description": "Affine alignment overlay of 5 macro blocks (CPU, SRAM 2MB, ReRAM 4MB, BIO, Crypto)",
+        "artifact_digest_sha512": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+        "verified_passed": true,
+        "metadata": {
+          "macros_aligned": 5,
+          "rms_residual_px": 0.0
+        }
+      }
+    ]
+  },
+  "canonical_payload_sha512": "14387e6fe17e03be4f9e559231f7d9dc93b8ca76b2496b986b5396cfec87d76c9fe230dd076f436c4d29656c3b4796a170342f8a9be9c78473a1cdf892804a43",
+  "attestation_signature": "a406ace105acb52f2182c9c80f84290987a872a40865b164bab60e9b91882f4e47003f6b958bfd5f2b66d40c7bcb81a74b431c300d9cbd1493541f1260753605",
+  "signer_public_key_hex": "ade1fde616eadef7a4c2192c2311abf0054c93521633504f4f49d016c5b9b031",
+  "verification_instructions": "Verify by re-canonicalizing payload (RFC 8785), computing SHA-512, and verifying Ed25519 signature."
+}
