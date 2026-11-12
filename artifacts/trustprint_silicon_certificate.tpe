@@ -2,7 +2,7 @@
   "payload": {
     "schema_version": "trustprint.v1.evidence",
     "bundle_id": "TPE-ade1fde6",
-    "created_at_utc": "2026-11-12T14:47:50.056558600+00:00",
+    "created_at_utc": "2026-11-12T15:08:02.108163405+00:00",
     "target_hardware": {
       "board_type": "Dabao",
       "silicon_stepping": "A0",
@@ -61,8 +61,8 @@
       }
     ]
   },
-  "canonical_payload_sha512": "14387e6fe17e03be4f9e559231f7d9dc93b8ca76b2496b986b5396cfec87d76c9fe230dd076f436c4d29656c3b4796a170342f8a9be9c78473a1cdf892804a43",
-  "attestation_signature": "a406ace105acb52f2182c9c80f84290987a872a40865b164bab60e9b91882f4e47003f6b958bfd5f2b66d40c7bcb81a74b431c300d9cbd1493541f1260753605",
+  "canonical_payload_sha512": "47f17049d0dbd7253c015a0a74c08829a3d4b4bcd08773594991877103250636c8c36756322e088a46348ddafe65924c759a75f60cbe5fef8d1461a77593a401",
+  "attestation_signature": "70e515b43255b919edbad4de760d69bec168d3e2608a87b95716ac8cd1990025ce40e58da6c1a92b59a95ec4e515e28e076f05b5839d73557dbce54242aed00f",
   "signer_public_key_hex": "ade1fde616eadef7a4c2192c2311abf0054c93521633504f4f49d016c5b9b031",
   "verification_instructions": "Verify by re-canonicalizing payload (RFC 8785), computing SHA-512, and verifying Ed25519 signature."
 }
