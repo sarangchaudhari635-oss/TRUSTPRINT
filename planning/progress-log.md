@@ -134,3 +134,65 @@ All notable architectural shifts, research findings, and phase completions are r
     3. Userland access into Enclave supervisor memory `0x20000000` caught by MMU as `Load Page Fault (scause=13)`.
   - 100% test pass rate across 17 unit tests in 7 workspace crates.
 - **Phase 9 Activated:** Operator Research Dashboard & Verification Visualizer.
+
+---
+
+## 2026-11-12 — Phase 9 Complete: Operator Research Dashboard
+
+**Status:** DONE  
+**Duration:** Phase 8 → 9 transition same session
+
+### Deliverables
+- `dashboard/index.html` — 990-line, 52 282-byte, zero-dependency single-file HTML dashboard
+- 7 fully populated tabs:
+  - **Overview:** hardware specs, 5-tier epistemic legend, M0–M11 milestone table, disclaimer
+  - **RTL Analysis:** 34-SFR table, stat cards, generated config block
+  - **BIO Simulation:** Canvas waveform renderer with real 50-transition gpio_out[21] edge data, conformance metric bars
+  - **Physical Silicon:** KV identity rows (serial, UUID, wafer lot), boot hashes, IFR hex dump
+  - **IRIS Inspection:** SVG die floorplan with 5 macros drawn, affine matrix, overlay table
+  - **Attestation:** Full .tpe certificate fields, 4 claims with tier colours, verification log
+  - **MMU Isolation:** PTE layout with flag badges, test execution log
+- Dashboard opened in system browser — no rendering errors observed
+
+---
+
+## 2026-11-12 — Phase 10 Complete: End-to-End Validation
+
+**Status:** DONE  
+**Duration:** ~30 minutes
+
+### Test Results
+- **Cargo unit tests:** 17/17 PASS (all 7 crates, no regressions)
+- **CLI acceptance criteria:** 11/11 PASS
+  - `status`, `tiers`, `parse-rtl`, `check-conformance`, `inspect-die`, `build-evidence`, `verify-evidence`, `mmu-test` — all verified
+  - Physical board telemetry (COM10 pyserial) — previously verified, logged
+  - Dashboard render — opened in browser, no errors
+
+### Artifacts Created
+- `artifacts/validation_report.txt` — full acceptance test record
+- `scripts/run_full_pipeline.sh` — WSL bash pipeline (7 steps, set -euo pipefail)
+
+### Git
+- `git init` → `git add --all` → initial commit `bf3edb8`
+- 146 files committed, 29 731 insertions
+- Tagged `v0.9.0-alpha`
+
+### Planning Updated
+- `planning/current-phase.md` → Phase 11 ACTIVE
+- `planning/milestone-tracker.md` → M9 and M10 DONE
+- `CHANGELOG.md` → v0.9.0-alpha entry added
+
+---
+
+## 2026-11-12 — Phase 11 Started: Final Submission
+
+**Status:** ACTIVE  
+**Target:** 2026-12-15
+
+### Remaining Tasks
+1. Create GitHub repository and push (user action required)
+2. Update README.md with real repo URL
+3. Record demo video (screen capture of dashboard + terminal pipeline)
+4. Upload video to YouTube/Vimeo
+5. Submit at https://crossbar-inc.com/pages/dabao-submit
+6. Tag v1.0.0 after submission
