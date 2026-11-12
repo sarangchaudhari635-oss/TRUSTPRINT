@@ -145,3 +145,4 @@ echo "Timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)" | tee -a "$REPORT"
 echo "============================================================" | tee -a "$REPORT"
 
 echo -e "\n${GREEN}✓ Pipeline complete. See: $REPORT${NC}"
+

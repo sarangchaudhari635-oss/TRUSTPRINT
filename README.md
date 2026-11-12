@@ -4,6 +4,7 @@
 > *"Verify the silicon. Authenticate the evidence."*
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![GitHub](https://img.shields.io/badge/GitHub-sarangchaudhari635--oss%2FTRUSTPRINT-black.svg?logo=github)](https://github.com/sarangchaudhari635-oss/TRUSTPRINT)
 [![Target: Dabao (Baochip-1x)](https://img.shields.io/badge/Target-Baochip--1x%20%2F%20Dabao-orange.svg)](https://github.com/baochip/dabao)
 [![OS: Xous](https://img.shields.io/badge/OS-Xous%20(Rust)-red.svg)](https://github.com/betrusted-io/xous-core)
 [![Simulation: BIO-sim](https://img.shields.io/badge/Simulation-BIO--sim%20(Verilator)-green.svg)](https://github.com/baochip/bio-sim)
@@ -115,6 +116,12 @@ flowchart TD
 ---
 
 ## 5. Quickstart & Workflow
+
+### Clone the Repository
+```bash
+git clone https://github.com/sarangchaudhari635-oss/TRUSTPRINT.git
+cd TRUSTPRINT
+```
 
 ### A. Environment Verification
 ```bash

@@ -55,7 +55,7 @@ flowchart TD
 
 # 2. Add the remote (replace YOUR_USERNAME):
 cd "c:\Users\Sarang Chaudhari\OneDrive\Desktop\DABAO\TRUSTPRINT"
-git remote add origin https://github.com/YOUR_USERNAME/trustprint.git
+git remote add origin https://github.com/sarangchaudhari635-oss/TRUSTPRINT.git
 
 # 3. Push main branch and tag:
 git push -u origin master
@@ -103,7 +103,7 @@ git push origin v1.0.0
 **Tagline:** Verify the silicon. Authenticate the evidence.  
 **Category:** Open-source hardware / Semiconductor verification / Hardware security  
 **Team:** Sarang Chaudhari (Solo)  
-**GitHub URL:** https://github.com/YOUR_USERNAME/trustprint  
+**GitHub URL:** https://github.com/sarangchaudhari635-oss/TRUSTPRINT  
 **Demo Video:** [YouTube/Vimeo URL — to be filled after recording]  
 
 **Short description (for submission form):**

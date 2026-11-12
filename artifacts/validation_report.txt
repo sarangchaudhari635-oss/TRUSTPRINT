@@ -125,3 +125,4 @@ No OTP fuses written. Developer mode unchanged.
 No signing keys exposed in logs.
 ============================================================
 END OF VALIDATION REPORT
+
